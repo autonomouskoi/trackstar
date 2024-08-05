@@ -1,0 +1,35 @@
+syntax = "proto3";
+package overlay;
+
+option go_package = "github.com/autonomouskoi/trackstar/overlay"; 
+
+enum BusTopic {
+	TRACKSTAR_OVERLAY_EVENT   = 0;
+    TRACKSTAR_OVERLAY_REQUEST = 1;
+}
+
+enum MessageType {
+    UNSPECIFIED         = 0;
+    STYLE_UPDATE        = 1;
+    SET_STYLE           = 2;
+    GET_CONFIG_REQUEST  = 3;
+    GET_CONFIG_RESPONSE = 4;
+}
+
+message StyleUpdate {
+    string  selector = 1;
+    string  property = 2;
+    string  value    = 3;
+}
+
+message Config {
+    repeated  StyleUpdate  styles = 1;
+}
+
+message GetConfigRequest {
+
+}
+
+message GetConfigResponse {
+    Config  config = 1;
+}

@@ -1,0 +1,49 @@
+syntax = "proto3";
+package stagelinq;
+
+option go_package = "github.com/autonomouskoi/trackstar/stagelinq";
+
+enum BusTopics {
+    STAGELINQ_STATE   = 0;
+    STAGELINQ_CONTROL = 1;
+}
+
+enum MessageType {
+    TYPE_UNSPECIFIED                = 0;
+    TYPE_CAPTURE_THRESHOLD_REQUEST  = 1;
+    TYPE_GET_THRESHOLD_REQUEST      = 2;
+    TYPE_THRESHOLD_UPDATE           = 3;
+    TYPE_GET_DEVICES_REQUEST        = 4;
+    TYPE_GET_DEVICES_RESPONSE       = 5;
+}
+
+message Config {
+    double  fader_threshold = 1;
+}
+
+message CaptureThresholdRequest {
+}
+
+message ThresholdUpdate {
+    double  fader_threshold = 1;
+}
+
+message Service {
+    string name = 1;
+    uint32 port = 2;
+}
+
+message Device {
+             string   ip               = 1;
+             string   name             = 2;
+             string   software_name    = 3;
+             string   software_verison = 4;
+    repeated Service  services         = 5;
+}
+
+message GetDevicesRequest {
+}
+
+message GetDevicesResponse {
+    repeated Device  devices = 1;
+}

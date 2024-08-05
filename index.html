@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+body {
+    height: 100%;
+    margin: 0;
+}
+#mainContainer {
+    display: grid;
+    grid-template-columns: auto auto auto;
+    column-gap: 0px;
+    row-gap: 0px;
+}
+#mainContainer div {
+    padding: 0.5rem;
+    border: 1px solid #aaa;
+    border-radius: 2px;
+}
+        </style>
+    </head>
+    <body>
+        <button id="download-button">&#x21E9;</button>
+        <div id="mainContainer">
+        </div>
+    </body>
+    <script type="importmap">
+        {
+            "imports": {
+                "@bufbuild/protobuf": "/protobuf/index.js"
+            }
+        }
+    </script>
+    <script type="module" src="./trackstar.js"></script>
+</html>

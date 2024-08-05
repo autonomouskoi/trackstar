@@ -1,0 +1,18 @@
+{
+    "compilerOptions": {
+        "lib": ["DOM", "ESNext"],
+        "module": "Node16",
+        "moduleResolution": "node16",
+        "noImplicitAny": true,
+        "outDir": "web/",
+        "paths": {
+            "/m/trackstar/pb/*":["./web/pb/*"],
+            "/m/trackstar/*":["./*"],
+            "/*": ["../akcore/web/content/out/*"]
+        },
+        "target": "ESNext"
+    },
+    "include": [
+        "*ts",
+    ],
+}

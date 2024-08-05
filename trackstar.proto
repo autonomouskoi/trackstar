@@ -1,0 +1,30 @@
+syntax = "proto3";
+package trackstar;
+
+option go_package = "github.com/autonomouskoi/trackstar";
+
+enum BusTopic {
+    TRACKSTAR = 0;
+}
+
+enum MessageType {
+    TYPE_UNSPECIFIED       = 0;
+    TYPE_DECK_DISCOVERED   = 1;
+    TYPE_TRACK_UPDATE      = 2;
+    TYPE_DECK_STYLE_UPDATE = 3;
+}
+
+message DeckDiscovered {
+    string  deck_id = 1;
+}
+
+message TrackUpdate {
+    string  deck_id = 1;
+    Track   track   = 2;
+    int64   when    = 3; 
+}
+
+message Track {
+    string  artist = 1;
+    string  title  = 2;
+}

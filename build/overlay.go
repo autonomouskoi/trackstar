@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -41,7 +42,10 @@ func OverlayTSProtos() error {
 	if err := mageutil.HasExec("protoc"); err != nil {
 		return err
 	}
-	plugin := filepath.Join(overlayDir, "node_modules/.bin/protoc-gen-es.cmd")
+	plugin := filepath.Join(overlayDir, "node_modules/.bin/protoc-gen-es")
+	if runtime.GOOS == "windows" {
+		plugin += ".cmd"
+	}
 	if err := mageutil.HasFiles(plugin); err != nil {
 		return err
 	}

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -42,6 +43,9 @@ func StagelinqTSProtos() error {
 		return err
 	}
 	plugin := filepath.Join(stagelinqDir, "node_modules/.bin/protoc-gen-es")
+	if runtime.GOOS == "windows" {
+		plugin += ".cmd"
+	}
 	if err := mageutil.HasFiles(plugin); err != nil {
 		return err
 	}
@@ -64,7 +68,7 @@ func StagelinqTSProtos() error {
 		}
 		mageutil.VerboseF("generating proto %s -> %s\n", srcFile, destFile)
 		err = sh.Run("protoc",
-			"--plugin", "protoc-gen-es="+plugin+".cmd",
+			"--plugin", "protoc-gen-es="+plugin,
 			"-I", stagelinqDir,
 			"--es_out", protoDestDir,
 			srcFile,

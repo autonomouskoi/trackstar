@@ -10,7 +10,7 @@ let decksContainer = document.querySelector("#decksContainer");
 
 let decksByID = {};
 
-fetch("./build.json")
+fetch("/m/trackstar/build.json")
     .then(resp => resp.json())
     .then(jsonData => {
         interface BuildData {

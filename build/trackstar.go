@@ -10,12 +10,12 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"time"
 
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
 	"github.com/magefile/mage/target"
 
+	"github.com/autonomouskoi/akcore"
 	"github.com/autonomouskoi/mageutil"
 )
 
@@ -84,7 +84,7 @@ func TrackstarVersion() error {
 	mg.Deps(TrackstarWebDir)
 	b, err := json.Marshal(map[string]string{
 		"Software": "aktrackstar",
-		"Build":    time.Now().Format("20060102-1504"),
+		"Build":    "v" + akcore.Version,
 	})
 	if err != nil {
 		return fmt.Errorf("marshalling version: %w", err)

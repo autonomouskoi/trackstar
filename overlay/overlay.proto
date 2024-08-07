@@ -14,6 +14,8 @@ enum MessageType {
     SET_STYLE           = 2;
     GET_CONFIG_REQUEST  = 3;
     GET_CONFIG_RESPONSE = 4;
+    SET_TRACK_COUNT     = 5;
+    TRACK_COUNT_UPDATE  = 6;
 }
 
 message StyleUpdate {
@@ -23,7 +25,8 @@ message StyleUpdate {
 }
 
 message Config {
-    repeated  StyleUpdate  styles = 1;
+    repeated  StyleUpdate  styles      = 1;
+              uint32       track_count = 2;
 }
 
 message GetConfigRequest {
@@ -32,4 +35,12 @@ message GetConfigRequest {
 
 message GetConfigResponse {
     Config  config = 1;
+}
+
+message SetTrackCount {
+    uint32  count = 1;
+}
+
+message TrackCountUpdate {
+    uint32  count = 1;
 }

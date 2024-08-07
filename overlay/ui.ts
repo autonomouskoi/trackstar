@@ -47,8 +47,26 @@ function sendStyleUpdate(selector: string, property: string, value: string) {
     msg.type = overlaypb.MessageType.SET_STYLE;
     msg.message = su.toBinary();
     bus.send(msg);
-
 }
+
+// ====== Track Count
+let countSlider = document.querySelector("#count-slider") as HTMLInputElement;
+let countValue = document.querySelector("#count-value") as HTMLElement;
+
+let sendCountUpdate = debounce(100, (value: number) => {
+    let cu = new overlaypb.SetTrackCount();
+    cu.count = value;
+    let msg = new buspb.BusMessage();
+    msg.topic = enumName(overlaypb.BusTopic, overlaypb.BusTopic.TRACKSTAR_OVERLAY_REQUEST);
+    msg.type = overlaypb.MessageType.SET_TRACK_COUNT;
+    msg.message = cu.toBinary();
+    bus.send(msg);
+})
+countSlider.addEventListener("input", (ev: Event) => {
+    let target = ev.target as HTMLInputElement;
+    countValue.innerText = target.value;
+    sendCountUpdate(parseInt(target.value));
+});
 
 // ====== Box Scale
 let sendScaleUpdate = debounce(100, (value: string) => {
@@ -166,6 +184,8 @@ let handleGetConfigReply = (msg: buspb.BusMessage) => {
                 break;
         }
     });
+    countSlider.value = gcr.config.trackCount.toString();
+    countValue.innerText = gcr.config.trackCount.toString();
 }
 let getConfigMessage = new buspb.BusMessage();
 getConfigMessage.topic = enumName(overlaypb.BusTopic, overlaypb.BusTopic.TRACKSTAR_OVERLAY_REQUEST);

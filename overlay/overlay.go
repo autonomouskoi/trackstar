@@ -72,6 +72,9 @@ func (o *Overlay) Start(ctx context.Context, deps *modutil.ModuleDeps) error {
 	} else if !errors.Is(err, akcore.ErrNotFound) {
 		return fmt.Errorf("retrieving config: %w", err)
 	}
+	if o.cfg.TrackCount == 0 {
+		o.cfg.TrackCount = 5
+	}
 
 	defer func() {
 		o.lock.Lock()
@@ -88,47 +91,49 @@ func (o *Overlay) Start(ctx context.Context, deps *modutil.ModuleDeps) error {
 	}()
 
 	if os.Getenv("TRACKSTAR_OVERLAY_DEMO") != "" {
-		deps.Log.Info("using demo mode")
-		time.Sleep(time.Second * 5)
-		for i := 1; i < 5; i++ {
-			b, err := proto.Marshal(&trackstar.DeckDiscovered{
-				DeckId: fmt.Sprint("Deck", i),
-			})
-			if err != nil {
-				return err
-			}
-			deps.Bus.Send(&bus.BusMessage{
-				Topic:   trackstar.BusTopic_TRACKSTAR.String(),
-				Type:    int32(trackstar.MessageType_TYPE_DECK_DISCOVERED),
-				Message: b,
-			})
-		}
-		i := 0
-		for {
-			select {
-			case <-ctx.Done():
-				return nil
-			case <-time.After(time.Second * 5):
-				b, err := proto.Marshal(&trackstar.TrackUpdate{
-					DeckId: fmt.Sprintf("Deck%d", i%4+1),
-					Track: &trackstar.Track{
-						Artist: fmt.Sprint("Artist ", i),
-						Title:  fmt.Sprint("Title ", i),
-					},
-					When: time.Now().Unix(),
+		go func() {
+			deps.Log.Info("using demo mode")
+			time.Sleep(time.Second * 5)
+			for i := 1; i < 5; i++ {
+				b, err := proto.Marshal(&trackstar.DeckDiscovered{
+					DeckId: fmt.Sprint("Deck", i),
 				})
 				if err != nil {
-					deps.Log.Error("marshalling TrackUpdate proto", "error", err.Error())
-					continue
+					return
 				}
 				deps.Bus.Send(&bus.BusMessage{
 					Topic:   trackstar.BusTopic_TRACKSTAR.String(),
-					Type:    int32(trackstar.MessageType_TYPE_TRACK_UPDATE),
+					Type:    int32(trackstar.MessageType_TYPE_DECK_DISCOVERED),
 					Message: b,
 				})
-				i++
 			}
-		}
+			i := 0
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(time.Second * 5):
+					b, err := proto.Marshal(&trackstar.TrackUpdate{
+						DeckId: fmt.Sprintf("Deck%d", i%4+1),
+						Track: &trackstar.Track{
+							Artist: fmt.Sprint("Artist ", i),
+							Title:  fmt.Sprint("Title ", i),
+						},
+						When: time.Now().Unix(),
+					})
+					if err != nil {
+						deps.Log.Error("marshalling TrackUpdate proto", "error", err.Error())
+						continue
+					}
+					deps.Bus.Send(&bus.BusMessage{
+						Topic:   trackstar.BusTopic_TRACKSTAR.String(),
+						Type:    int32(trackstar.MessageType_TYPE_TRACK_UPDATE),
+						Message: b,
+					})
+					i++
+				}
+			}
+		}()
 	}
 
 	o.handleRequests(ctx)

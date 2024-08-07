@@ -26,6 +26,23 @@ h2 {
         <h1>Trackstar Overlay Configuration</h1>
         <main>
             <h2>Box</h2>
+            <label for="count-slider">Track Count</label>
+            <div>
+                <input type="range"
+                    id="count-slider"
+                    min="1"
+                    max="10"
+                    step="1"
+                    list="markers"
+                />
+                <datalist id="markers">
+                    <option value="1"></option>
+                    <option value="2"></option>
+                    <option value="5"></option>
+                    <option value="10"></option>
+                </datalist>
+                <span id="count-value"></span>
+            </div>
             <label for="scale-slider">Scale</label>
             <div>
                 <input type="range"

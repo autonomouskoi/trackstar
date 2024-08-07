@@ -9,6 +9,7 @@ customElements.define('deck-track', deck.Deck);
 let decksContainer = document.querySelector("#decksContainer");
 
 let decksByID = {};
+let tracksCount = 5;
 
 fetch("/m/trackstar/build.json")
     .then(resp => resp.json())
@@ -74,7 +75,6 @@ let handleTrackstar = (msg: buspb.BusMessage) => {
         */
         case tspb.MessageType.TYPE_TRACK_UPDATE:
             let tu = tspb.TrackUpdate.fromBinary(msg.message);
-            console.log("handling track update ", tu);
             let deck = document.createElement("deck-track") as deck.Deck;
             deck.setTrack(tu.track!.artist, tu.track!.title);
 
@@ -98,7 +98,7 @@ let handleTrackstar = (msg: buspb.BusMessage) => {
             } else {
                 decksContainer.appendChild(deck);
             }
-            while (decksContainer.childNodes.length > 5) {
+            while (decksContainer.childNodes.length > tracksCount) {
                 decksContainer.removeChild(decksContainer.lastChild);
             }
     }
@@ -111,16 +111,22 @@ let applyStyleUpdate = (su: overlaypb.StyleUpdate) => {
 
 bus.subscribe(enumName(tspb.BusTopic, tspb.BusTopic.TRACKSTAR), handleTrackstar);
 bus.subscribe(enumName(overlaypb.BusTopic, overlaypb.BusTopic.TRACKSTAR_OVERLAY_EVENT), (msg: buspb.BusMessage) => {
-    if (msg.type !== overlaypb.MessageType.STYLE_UPDATE) {
-        return;
+    switch (msg.type) {
+        case overlaypb.MessageType.STYLE_UPDATE:
+            let su = overlaypb.StyleUpdate.fromBinary(msg.message);
+            applyStyleUpdate(su);
+            break;
+        case overlaypb.MessageType.TRACK_COUNT_UPDATE:
+            let tcu = overlaypb.TrackCountUpdate.fromBinary(msg.message);
+            tracksCount = tcu.count;
+            break;
     }
-    let su = overlaypb.StyleUpdate.fromBinary(msg.message);
-    applyStyleUpdate(su)
 })
 
 let handleGetConfigReply = (msg: buspb.BusMessage) => {
     let gcr = overlaypb.GetConfigResponse.fromBinary(msg.message);
     gcr.config.styles.forEach(applyStyleUpdate);
+    tracksCount = gcr.config.trackCount;
 }
 
 let getConfigMessage = new buspb.BusMessage();

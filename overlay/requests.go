@@ -25,6 +25,8 @@ func (o *Overlay) handleRequests(ctx context.Context) {
 				o.handleSetStyle(msg)
 			case int32(MessageType_GET_CONFIG_REQUEST):
 				o.handleGetConfigRequest(msg)
+			case int32(MessageType_SET_TRACK_COUNT):
+				o.handleSetTrackCount(msg)
 			default:
 				o.deps.Log.Error("unhandled message type", "type", msg.Type)
 			}
@@ -74,4 +76,27 @@ func (o *Overlay) handleGetConfigRequest(msg *bus.BusMessage) {
 		Message: b,
 	}
 	o.deps.Bus.SendReply(msg, reply)
+}
+
+func (o *Overlay) handleSetTrackCount(msg *bus.BusMessage) {
+	stc := &SetTrackCount{}
+	if err := proto.Unmarshal(msg.GetMessage(), stc); err != nil {
+		o.deps.Log.Error("unmarshalling SetTrackCount", "error", err.Error())
+		return
+	}
+	o.deps.Log.Debug("handling SetTrackCount", "count", stc.Count)
+	if stc.Count < 1 {
+		return
+	}
+	o.cfg.TrackCount = stc.Count
+	b, err := proto.Marshal(&TrackCountUpdate{Count: stc.Count})
+	if err != nil {
+		o.deps.Log.Error("marshalling TrackCountUpdate", "error", err.Error())
+		return
+	}
+	o.deps.Bus.Send(&bus.BusMessage{
+		Topic:   BusTopic_TRACKSTAR_OVERLAY_EVENT.String(),
+		Type:    int32(MessageType_TRACK_COUNT_UPDATE),
+		Message: b,
+	})
 }

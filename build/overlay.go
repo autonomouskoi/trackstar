@@ -8,13 +8,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
-	"strings"
 	"time"
 
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
-	"github.com/magefile/mage/target"
 
 	"github.com/autonomouskoi/mageutil"
 )
@@ -39,45 +36,7 @@ func OverlayGoProtos() error {
 }
 func OverlayTSProtos() error {
 	mg.Deps(OverlayWebDir)
-	if err := mageutil.HasExec("protoc"); err != nil {
-		return err
-	}
-	plugin := filepath.Join(overlayDir, "node_modules/.bin/protoc-gen-es")
-	if runtime.GOOS == "windows" {
-		plugin += ".cmd"
-	}
-	if err := mageutil.HasFiles(plugin); err != nil {
-		return err
-	}
-	protoDestDir := filepath.Join(overlayWebDir, "pb")
-	if err := mageutil.Mkdir(protoDestDir); err != nil {
-		return fmt.Errorf("creating %s: %w", protoDestDir, err)
-	}
-	for _, srcFile := range []string{
-		"overlay.proto",
-	} {
-		baseName := strings.TrimSuffix(filepath.Base(srcFile), ".proto")
-		destFile := filepath.Join(protoDestDir, baseName+"_pb.js")
-		srcFile = filepath.Join(overlayDir, srcFile)
-		newer, err := target.Path(destFile, srcFile)
-		if err != nil {
-			return fmt.Errorf("testing %s vs %s: %w", srcFile, destFile, err)
-		}
-		if !newer {
-			continue
-		}
-		mageutil.VerboseF("generating proto %s -> %s\n", srcFile, destFile)
-		err = sh.Run("protoc",
-			"--plugin", "protoc-gen-es="+plugin,
-			"-I", overlayDir,
-			"--es_out", protoDestDir,
-			srcFile,
-		)
-		if err != nil {
-			return fmt.Errorf("generating proto %s -> %s\n: %w", srcFile, destFile, err)
-		}
-	}
-	return nil
+	return mageutil.TSProtosInDir(overlayWebDir, overlayDir)
 }
 
 func OverlayVersion() error {

@@ -191,11 +191,13 @@ func (sl *StagelinQ) Start(ctx context.Context, deps *modutil.ModuleDeps) error 
 			sl.discover(ctx)
 		}
 		wg.Done()
+		sl.log.Debug("exiting", "loop", "discover")
 	}()
 	wg.Add(1)
 	go func() {
 		sl.handleRequests(ctx)
 		wg.Done()
+		sl.log.Debug("exiting", "loop", "handleRequests")
 	}()
 	wg.Wait()
 	return ctx.Err()
@@ -296,7 +298,7 @@ func (sl *StagelinQ) handleDevice(ctx context.Context, device *stagelinq.Device)
 			service: service,
 			token:   token,
 		}
-		for {
+		for ctx.Err() == nil {
 			if err := sl.handleStateMap(ctx, smh); err != nil {
 				sl.log.Error("handling StateMap", "err", err.Error())
 			}
@@ -449,7 +451,7 @@ func (sl *StagelinQ) maybeNotify(ds *deckState) {
 func (sl *StagelinQ) handleRequests(ctx context.Context) {
 	in := make(chan *bus.BusMessage, 16)
 	sl.bus.Subscribe(BusTopics_STAGELINQ_CONTROL.String(), in)
-	defer func() {
+	go func() {
 		<-ctx.Done()
 		sl.bus.Unsubscribe(BusTopics_STAGELINQ_CONTROL.String(), in)
 		bus.Drain(in)

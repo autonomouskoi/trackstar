@@ -10,7 +10,7 @@ import (
 
 func (o *Overlay) handleRequests(ctx context.Context) {
 	in := make(chan *bus.BusMessage, 16)
-	defer func() {
+	go func() {
 		<-ctx.Done()
 		o.deps.Bus.Unsubscribe(BusTopic_TRACKSTAR_OVERLAY_REQUEST.String(), in)
 		bus.Drain(in)

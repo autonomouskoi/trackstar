@@ -21,6 +21,7 @@ import (
 	"github.com/autonomouskoi/akcore/bus"
 	"github.com/autonomouskoi/akcore/modules"
 	"github.com/autonomouskoi/akcore/modules/modutil"
+	"github.com/autonomouskoi/akcore/storage/kv"
 	"github.com/autonomouskoi/akcore/web/webutil"
 	"github.com/autonomouskoi/mapset"
 	"github.com/autonomouskoi/trackstar"
@@ -142,6 +143,7 @@ type StagelinQ struct {
 	discovered *discovered
 	deckStates map[string]*deckState
 	cfg        *Config
+	kv         kv.KVPrefix
 }
 
 func (sl *StagelinQ) Start(ctx context.Context, deps *modutil.ModuleDeps) error {
@@ -149,33 +151,20 @@ func (sl *StagelinQ) Start(ctx context.Context, deps *modutil.ModuleDeps) error 
 	sl.bus = deps.Bus
 	sl.discovered = &discovered{}
 	sl.deckStates = map[string]*deckState{}
+	sl.kv = deps.KV
 
 	sl.cfg = &Config{}
-	if cfgBytes, err := deps.KV.Get(cfgKVKey); err == nil {
-		if err := proto.Unmarshal(cfgBytes, sl.cfg); err != nil {
-			return fmt.Errorf("unmarshalling config: %w", err)
-		}
-	} else if !errors.Is(err, akcore.ErrNotFound) {
+
+	if err := sl.kv.GetProto(cfgKVKey, sl.cfg); err != nil && !errors.Is(err, akcore.ErrNotFound) {
 		return fmt.Errorf("retrieving config: %w", err)
 	}
+	defer sl.writeCfg()
 
 	fs, err := webutil.ZipOrEnvPath(EnvLocalContentPath, webZip)
 	if err != nil {
 		return err
 	}
 	sl.Handler = http.StripPrefix("/m/trackstarstagelinq", http.FileServer(fs))
-
-	defer func() {
-		b, err := proto.Marshal(sl.cfg)
-		if err != nil {
-			sl.log.Error("marshalling config", "error", err.Error())
-			return
-		}
-		if err := deps.KV.Set(cfgKVKey, b); err != nil {
-			sl.log.Error("storing config", "error", err.Error())
-			return
-		}
-	}()
 
 	ctx, sl.cancel = context.WithCancel(ctx)
 	defer sl.cancel()
@@ -210,6 +199,12 @@ func (sl *StagelinQ) Start(ctx context.Context, deps *modutil.ModuleDeps) error 
 	}()
 	wg.Wait()
 	return ctx.Err()
+}
+
+func (sl *StagelinQ) writeCfg() {
+	if err := sl.kv.SetProto(cfgKVKey, sl.cfg); err != nil {
+		sl.log.Error("writing config", "error", err.Error())
+	}
 }
 
 func (sl *StagelinQ) discover(ctx context.Context) {
@@ -455,30 +450,26 @@ func (sl *StagelinQ) handleRequests(ctx context.Context) {
 	in := make(chan *bus.BusMessage, 16)
 	sl.bus.Subscribe(BusTopics_STAGELINQ_CONTROL.String(), in)
 	defer func() {
+		<-ctx.Done()
 		sl.bus.Unsubscribe(BusTopics_STAGELINQ_CONTROL.String(), in)
-		for range in { // drain channel
-		}
+		bus.Drain(in)
 	}()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case msg := <-in:
-			switch msg.Type {
-			case int32(MessageType_TYPE_CAPTURE_THRESHOLD_REQUEST):
-				highest := 0.0
-				for _, ds := range sl.deckStates {
-					if ds.upfader > highest {
-						highest = ds.upfader
-					}
+	for msg := range in {
+		switch msg.Type {
+		case int32(MessageType_TYPE_CAPTURE_THRESHOLD_REQUEST):
+			highest := 0.0
+			for _, ds := range sl.deckStates {
+				if ds.upfader > highest {
+					highest = ds.upfader
 				}
-				sl.cfg.FaderThreshold = highest
-				sl.sendThreshold()
-			case int32(MessageType_TYPE_GET_THRESHOLD_REQUEST):
-				sl.sendThreshold()
-			case int32(MessageType_TYPE_GET_DEVICES_REQUEST):
-				sl.handleGetDevices(msg)
 			}
+			sl.cfg.FaderThreshold = highest
+			sl.writeCfg()
+			sl.sendThreshold()
+		case int32(MessageType_TYPE_GET_THRESHOLD_REQUEST):
+			sl.sendThreshold()
+		case int32(MessageType_TYPE_GET_DEVICES_REQUEST):
+			sl.handleGetDevices(msg)
 		}
 	}
 }

@@ -11,25 +11,21 @@ import (
 func (o *Overlay) handleRequests(ctx context.Context) {
 	in := make(chan *bus.BusMessage, 16)
 	defer func() {
+		<-ctx.Done()
 		o.deps.Bus.Unsubscribe(BusTopic_TRACKSTAR_OVERLAY_REQUEST.String(), in)
 		bus.Drain(in)
 	}()
 	o.deps.Bus.Subscribe(BusTopic_TRACKSTAR_OVERLAY_REQUEST.String(), in)
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case msg := <-in:
-			switch msg.Type {
-			case int32(MessageType_SET_STYLE):
-				o.handleSetStyle(msg)
-			case int32(MessageType_GET_CONFIG_REQUEST):
-				o.handleGetConfigRequest(msg)
-			case int32(MessageType_SET_TRACK_COUNT):
-				o.handleSetTrackCount(msg)
-			default:
-				o.deps.Log.Error("unhandled message type", "type", msg.Type)
-			}
+	for msg := range in {
+		switch msg.Type {
+		case int32(MessageType_SET_STYLE):
+			o.handleSetStyle(msg)
+		case int32(MessageType_GET_CONFIG_REQUEST):
+			o.handleGetConfigRequest(msg)
+		case int32(MessageType_SET_TRACK_COUNT):
+			o.handleSetTrackCount(msg)
+		default:
+			o.deps.Log.Error("unhandled message type", "type", msg.Type)
 		}
 	}
 }
@@ -59,6 +55,7 @@ func (o *Overlay) handleSetStyle(msg *bus.BusMessage) {
 		Message: msg.Message,
 	}
 	o.deps.Bus.Send(outMsg)
+	o.writeCfg()
 }
 
 func (o *Overlay) handleGetConfigRequest(msg *bus.BusMessage) {
@@ -99,4 +96,5 @@ func (o *Overlay) handleSetTrackCount(msg *bus.BusMessage) {
 		Type:    int32(MessageType_TRACK_COUNT_UPDATE),
 		Message: b,
 	})
+	o.writeCfg()
 }

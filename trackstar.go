@@ -50,26 +50,23 @@ func (ts *Trackstar) Start(ctx context.Context, deps *modutil.ModuleDeps) error 
 	ts.Handler = http.StripPrefix("/m/trackstar", http.FileServer(fs))
 
 	in := make(chan *bus.BusMessage, 16)
-	defer func() {
+	go func() {
+		<-ctx.Done()
 		deps.Bus.Unsubscribe(BusTopic_TRACKSTAR.String(), in)
 		bus.Drain(in)
 	}()
 	deps.Bus.Subscribe(BusTopic_TRACKSTAR.String(), in)
 
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case msg := <-in:
-			switch msg.Type {
-			case int32(MessageType_TYPE_TRACK_UPDATE):
-				tu := &TrackUpdate{}
-				if err := proto.Unmarshal(msg.Message, tu); err != nil {
-					deps.Log.Error("unmarshalling TrackUpdate", "error", err.Error())
-					continue
-				}
-				ts.updates = append(ts.updates, tu)
+	for msg := range in {
+		switch msg.Type {
+		case int32(MessageType_TYPE_TRACK_UPDATE):
+			tu := &TrackUpdate{}
+			if err := proto.Unmarshal(msg.Message, tu); err != nil {
+				deps.Log.Error("unmarshalling TrackUpdate", "error", err.Error())
+				continue
 			}
+			ts.updates = append(ts.updates, tu)
 		}
 	}
+	return ctx.Err()
 }

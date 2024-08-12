@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"sync"
@@ -16,6 +17,7 @@ import (
 	"github.com/autonomouskoi/akcore/bus"
 	"github.com/autonomouskoi/akcore/modules"
 	"github.com/autonomouskoi/akcore/modules/modutil"
+	"github.com/autonomouskoi/akcore/storage/kv"
 	"github.com/autonomouskoi/akcore/web/webutil"
 	"github.com/autonomouskoi/trackstar"
 )
@@ -53,7 +55,9 @@ type Overlay struct {
 	http.Handler
 	deps *modutil.ModuleDeps
 	lock sync.Mutex
+	log  *slog.Logger
 	cfg  *Config
+	kv   *kv.KVPrefix
 }
 
 func (o *Overlay) Start(ctx context.Context, deps *modutil.ModuleDeps) error {
@@ -63,32 +67,18 @@ func (o *Overlay) Start(ctx context.Context, deps *modutil.ModuleDeps) error {
 	}
 	o.Handler = http.StripPrefix("/m/trackstaroverlay", http.FileServer(fs))
 	o.deps = deps
+	o.kv = &deps.KV
+	o.log = deps.Log
 
 	o.cfg = &Config{}
-	if cfgBytes, err := deps.KV.Get(cfgKVKey); err == nil {
-		if err := proto.Unmarshal(cfgBytes, o.cfg); err != nil {
-			return fmt.Errorf("unmarshalling config: %w", err)
-		}
-	} else if !errors.Is(err, akcore.ErrNotFound) {
+	if err := o.kv.GetProto(cfgKVKey, o.cfg); err != nil && !errors.Is(err, akcore.ErrNotFound) {
 		return fmt.Errorf("retrieving config: %w", err)
 	}
 	if o.cfg.TrackCount == 0 {
 		o.cfg.TrackCount = 5
 	}
 
-	defer func() {
-		o.lock.Lock()
-		defer o.lock.Unlock()
-		b, err := proto.Marshal(o.cfg)
-		if err != nil {
-			o.deps.Log.Error("marshalling config", "error", err.Error())
-			return
-		}
-		if err := deps.KV.Set(cfgKVKey, b); err != nil {
-			o.deps.Log.Error("storing config", "error", err.Error())
-			return
-		}
-	}()
+	defer o.writeCfg()
 
 	if os.Getenv("TRACKSTAR_OVERLAY_DEMO") != "" {
 		go func() {
@@ -144,11 +134,10 @@ func (o *Overlay) Start(ctx context.Context, deps *modutil.ModuleDeps) error {
 //go:embed web.zip
 var overlayHTML []byte
 
-/*
-func (o *Overlay) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	//http.ServeFile(w, r, "/Users/jason/p/ak/trackstar/overlay/overlay.html")
-	w.Header().Set("Content-Type", "text/html")
-	w.Header().Set("Content-Length", strconv.Itoa(len(overlayHTML)))
-	w.Write(overlayHTML)
+func (o *Overlay) writeCfg() {
+	o.lock.Lock()
+	defer o.lock.Unlock()
+	if err := o.kv.SetProto(cfgKVKey, o.cfg); err != nil {
+		o.log.Error("writing config", "error", err.Error())
+	}
 }
-*/

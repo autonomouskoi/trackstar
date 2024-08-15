@@ -23,7 +23,7 @@ import (
 	"github.com/autonomouskoi/akcore/modules/modutil"
 	"github.com/autonomouskoi/akcore/storage/kv"
 	"github.com/autonomouskoi/akcore/web/webutil"
-	"github.com/autonomouskoi/mapset"
+	"github.com/autonomouskoi/datastruct/mapset"
 	"github.com/autonomouskoi/trackstar"
 )
 

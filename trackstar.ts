@@ -2,6 +2,8 @@ import { bus, enumName } from "/bus.js";
 import * as buspb from "/pb/bus/bus_pb.js";
 import * as tspb from "/m/trackstar/pb/trackstar_pb.js";
 
+const TOPIC_TRACKSTAR = enumName(tspb.BusTopic, tspb.BusTopic.TRACKSTAR);
+
 let mainContainer = document.querySelector('#mainContainer')
 
 interface entry {
@@ -60,4 +62,4 @@ let download = () => {
 
 (document.querySelector('#download-button') as HTMLButtonElement).onclick = download;
 
-bus.subscribe(enumName(tspb.BusTopic, tspb.BusTopic.TRACKSTAR), handleTrackstar);
+bus.subscribe(TOPIC_TRACKSTAR, handleTrackstar);

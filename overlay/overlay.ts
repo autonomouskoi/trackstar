@@ -4,6 +4,10 @@ import * as buspb from "/pb/bus/bus_pb.js";
 import * as overlaypb from "/m/trackstaroverlay/pb/overlay_pb.js"
 import * as tspb from "/m/trackstar/pb/trackstar_pb.js";
 
+const TOPIC_TRACKSTAR = enumName(tspb.BusTopic, tspb.BusTopic.TRACKSTAR);
+const TOPIC_TRACKSTAR_OVERLAY_EVENT = enumName(overlaypb.BusTopic, overlaypb.BusTopic.TRACKSTAR_OVERLAY_EVENT);
+const TOPIC_TRACKSTAR_OVERLAY_REQUEST =  enumName(overlaypb.BusTopic, overlaypb.BusTopic.TRACKSTAR_OVERLAY_REQUEST);
+
 customElements.define('deck-track', deck.Deck);
 
 let decksContainer = document.querySelector("#decksContainer");
@@ -109,8 +113,8 @@ let applyStyleUpdate = (su: overlaypb.StyleUpdate) => {
     element.style.setProperty(su.property, su.value);
 }
 
-bus.subscribe(enumName(tspb.BusTopic, tspb.BusTopic.TRACKSTAR), handleTrackstar);
-bus.subscribe(enumName(overlaypb.BusTopic, overlaypb.BusTopic.TRACKSTAR_OVERLAY_EVENT), (msg: buspb.BusMessage) => {
+bus.subscribe(TOPIC_TRACKSTAR, handleTrackstar);
+bus.subscribe(TOPIC_TRACKSTAR_OVERLAY_EVENT, (msg: buspb.BusMessage) => {
     switch (msg.type) {
         case overlaypb.MessageType.STYLE_UPDATE:
             let su = overlaypb.StyleUpdate.fromBinary(msg.message);
@@ -130,8 +134,8 @@ let handleGetConfigReply = (msg: buspb.BusMessage) => {
 }
 
 let getConfigMessage = new buspb.BusMessage();
-getConfigMessage.topic = enumName(overlaypb.BusTopic, overlaypb.BusTopic.TRACKSTAR_OVERLAY_REQUEST);
+getConfigMessage.topic = TOPIC_TRACKSTAR_OVERLAY_REQUEST;
 getConfigMessage.type = overlaypb.MessageType.GET_CONFIG_REQUEST;
 getConfigMessage.message = (new overlaypb.GetConfigRequest()).toBinary();
-//setTimeout(() => bus.sendWithReply(getConfigMessage, handleGetConfigReply), 250);
-setTimeout(() => bus.sendWithReply(getConfigMessage, handleGetConfigReply), 250);
+bus.waitForTopic(TOPIC_TRACKSTAR_OVERLAY_REQUEST,5000)
+    .then(() => bus.sendWithReply(getConfigMessage, handleGetConfigReply));

@@ -2,6 +2,9 @@ import { bus, enumName } from "/bus.js";
 import * as buspb from "/pb/bus/bus_pb.js";
 import * as stagelinqpb from "/m/trackstarstagelinq/pb/stagelinq_pb.js";
 
+const TOPIC_STAGELINQ_STATE = enumName(stagelinqpb.BusTopics, stagelinqpb.BusTopics.STAGELINQ_STATE);
+const TOPIC_STAGELINQ_CONTROL = enumName(stagelinqpb.BusTopics, stagelinqpb.BusTopics.STAGELINQ_CONTROL);
+
 class StagelinQDevice extends HTMLElement {
     private _device: stagelinqpb.Device;
 
@@ -88,7 +91,7 @@ function start(mainContainer: HTMLElement) {
         //devicesDiv.innerText = JSON.stringify(devices);
     }
 
-    bus.subscribe(enumName(stagelinqpb.BusTopics, stagelinqpb.BusTopics.STAGELINQ_STATE), (msg: buspb.BusMessage) => {
+    bus.subscribe(TOPIC_STAGELINQ_STATE, (msg: buspb.BusMessage) => {
         switch (msg.type) {
             case stagelinqpb.MessageType.TYPE_THRESHOLD_UPDATE:
                 button.disabled = false;
@@ -104,30 +107,31 @@ function start(mainContainer: HTMLElement) {
     button.onclick = () => {
         button.disabled = true;
         let msg = new buspb.BusMessage();
-        msg.topic = enumName(stagelinqpb.BusTopics, stagelinqpb.BusTopics.STAGELINQ_CONTROL);
+        msg.topic = TOPIC_STAGELINQ_CONTROL;
         msg.type = stagelinqpb.MessageType.TYPE_CAPTURE_THRESHOLD_REQUEST;
         msg.message = (new stagelinqpb.CaptureThresholdRequest()).toBinary();
         bus.send(msg);
     }
 
 
-    setTimeout(() => {
-        let initialGTRequest = new buspb.BusMessage();
-        initialGTRequest.topic = enumName(stagelinqpb.BusTopics, stagelinqpb.BusTopics.STAGELINQ_CONTROL)
-        initialGTRequest.type = stagelinqpb.MessageType.TYPE_GET_THRESHOLD_REQUEST;
-        bus.send(initialGTRequest);
+    bus.waitForTopic(TOPIC_STAGELINQ_CONTROL, 5000)
+        .then(() => {
+            let initialGTRequest = new buspb.BusMessage();
+            initialGTRequest.topic = TOPIC_STAGELINQ_CONTROL;
+            initialGTRequest.type = stagelinqpb.MessageType.TYPE_GET_THRESHOLD_REQUEST;
+            bus.send(initialGTRequest);
 
-        let initialGDRequest = new buspb.BusMessage();
-        initialGDRequest.topic = enumName(stagelinqpb.BusTopics, stagelinqpb.BusTopics.STAGELINQ_CONTROL)
-        initialGDRequest.type = stagelinqpb.MessageType.TYPE_GET_DEVICES_REQUEST;
-        bus.sendWithReply(initialGDRequest, (resp: buspb.BusMessage) => {
-            if (resp.type !== stagelinqpb.MessageType.TYPE_GET_DEVICES_RESPONSE) {
-                return;
-            }
-            let gdr = stagelinqpb.GetDevicesResponse.fromBinary(resp.message);
-            updateDevices(gdr.devices);
+            let initialGDRequest = new buspb.BusMessage();
+            initialGDRequest.topic = TOPIC_STAGELINQ_CONTROL;
+            initialGDRequest.type = stagelinqpb.MessageType.TYPE_GET_DEVICES_REQUEST;
+            bus.sendWithReply(initialGDRequest, (resp: buspb.BusMessage) => {
+                if (resp.type !== stagelinqpb.MessageType.TYPE_GET_DEVICES_RESPONSE) {
+                    return;
+                }
+                let gdr = stagelinqpb.GetDevicesResponse.fromBinary(resp.message);
+                updateDevices(gdr.devices);
+            });
         });
-    }, 250);
 }
 
 export { start };

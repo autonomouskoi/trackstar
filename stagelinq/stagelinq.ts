@@ -86,9 +86,7 @@ function start(mainContainer: HTMLElement) {
             let sld = document.createElement('stagelinq-device') as StagelinQDevice;
             sld.device = device;
             devicesDiv.appendChild(sld);
-            console.log(`appended ${device.ip}`);
         });
-        //devicesDiv.innerText = JSON.stringify(devices);
     }
 
     bus.subscribe(TOPIC_STAGELINQ_STATE, (msg: buspb.BusMessage) => {

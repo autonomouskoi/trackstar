@@ -4,14 +4,16 @@ package trackstar;
 option go_package = "github.com/autonomouskoi/trackstar";
 
 enum BusTopic {
-    TRACKSTAR = 0;
+    TRACKSTAR_EVENT   = 0;
+    TRACKSTAR_REQUEST = 1;
+    TRACKSTAR_COMMAND = 2;
 }
 
-enum MessageType {
-    TYPE_UNSPECIFIED       = 0;
-    TYPE_DECK_DISCOVERED   = 1;
-    TYPE_TRACK_UPDATE      = 2;
-    TYPE_DECK_STYLE_UPDATE = 3;
+enum MessageTypeEvent {
+    TRACKSTAR_EVENT_UNSPECIFIED       = 0;
+    TRACKSTAR_EVENT_DECK_DISCOVERED   = 1;
+    TRACKSTAR_EVENT_TRACK_UPDATE      = 2;
+    TRACKSTAR_EVENT_DECK_STYLE_UPDATE = 3;
 }
 
 message DeckDiscovered {
@@ -27,4 +29,16 @@ message TrackUpdate {
 message Track {
     string  artist = 1;
     string  title  = 2;
+}
+
+enum MessageTypeRequest {
+    TRACKSTAR_REQUEST_GET_TRACK_REQ  = 0;
+    TRACKSTAR_REQUEST_GET_TRACK_RESP = 1;
+}
+
+message GetTrackRequest {
+    uint32  delta_seconds = 1;
+}
+message GetTrackResponse {
+    TrackUpdate  track_update = 1;
 }

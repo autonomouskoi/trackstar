@@ -364,8 +364,8 @@ func (sl *StagelinQ) handleState(device *stagelinq.Device, state *stagelinq.Stat
 			return
 		}
 		sl.bus.Send(&bus.BusMessage{
-			Topic:   trackstar.BusTopic_TRACKSTAR.String(),
-			Type:    int32(trackstar.MessageType_TYPE_DECK_DISCOVERED),
+			Topic:   trackstar.BusTopic_TRACKSTAR_EVENT.String(),
+			Type:    int32(trackstar.MessageTypeEvent_TRACKSTAR_EVENT_DECK_DISCOVERED),
 			Message: b,
 		})
 		ds = &deckState{
@@ -441,8 +441,8 @@ func (sl *StagelinQ) maybeNotify(ds *deckState) {
 	}
 	sl.log.Debug("sending track", "track", ds.track)
 	sl.bus.Send(&bus.BusMessage{
-		Topic:   trackstar.BusTopic_TRACKSTAR.String(),
-		Type:    int32(trackstar.MessageType_TYPE_TRACK_UPDATE),
+		Topic:   trackstar.BusTopic_TRACKSTAR_EVENT.String(),
+		Type:    int32(trackstar.MessageTypeEvent_TRACKSTAR_EVENT_TRACK_UPDATE),
 		Message: b,
 	})
 	ds.notified = true

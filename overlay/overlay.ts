@@ -4,7 +4,7 @@ import * as buspb from "/pb/bus/bus_pb.js";
 import * as overlaypb from "/m/trackstaroverlay/pb/overlay_pb.js"
 import * as tspb from "/m/trackstar/pb/trackstar_pb.js";
 
-const TOPIC_TRACKSTAR = enumName(tspb.BusTopic, tspb.BusTopic.TRACKSTAR);
+const TOPIC_TRACKSTAR_EVENT = enumName(tspb.BusTopic, tspb.BusTopic.TRACKSTAR_EVENT);
 const TOPIC_TRACKSTAR_OVERLAY_EVENT = enumName(overlaypb.BusTopic, overlaypb.BusTopic.TRACKSTAR_OVERLAY_EVENT);
 const TOPIC_TRACKSTAR_OVERLAY_REQUEST =  enumName(overlaypb.BusTopic, overlaypb.BusTopic.TRACKSTAR_OVERLAY_REQUEST);
 
@@ -73,11 +73,11 @@ class Animator {
 
 let handleTrackstar = (msg: buspb.BusMessage) => {
     switch (msg.type) {
-        case tspb.MessageType.TYPE_DECK_DISCOVERED:
+        case tspb.MessageTypeEvent.TRACKSTAR_EVENT_DECK_DISCOVERED:
         /*
         let dd = tspb.DeckDiscovered.fromBinary(msg.message);
         */
-        case tspb.MessageType.TYPE_TRACK_UPDATE:
+        case tspb.MessageTypeEvent.TRACKSTAR_EVENT_TRACK_UPDATE:
             let tu = tspb.TrackUpdate.fromBinary(msg.message);
             let deck = document.createElement("deck-track") as deck.Deck;
             deck.setTrack(tu.track!.artist, tu.track!.title);
@@ -113,7 +113,7 @@ let applyStyleUpdate = (su: overlaypb.StyleUpdate) => {
     element.style.setProperty(su.property, su.value);
 }
 
-bus.subscribe(TOPIC_TRACKSTAR, handleTrackstar);
+bus.subscribe(TOPIC_TRACKSTAR_EVENT, handleTrackstar);
 bus.subscribe(TOPIC_TRACKSTAR_OVERLAY_EVENT, (msg: buspb.BusMessage) => {
     switch (msg.type) {
         case overlaypb.MessageType.STYLE_UPDATE:

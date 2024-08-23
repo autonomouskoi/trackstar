@@ -2,7 +2,7 @@ import { bus, enumName } from "/bus.js";
 import * as buspb from "/pb/bus/bus_pb.js";
 import * as tspb from "/m/trackstar/pb/trackstar_pb.js";
 
-const TOPIC_TRACKSTAR = enumName(tspb.BusTopic, tspb.BusTopic.TRACKSTAR);
+const TOPIC_TRACKSTAR_EVENT = enumName(tspb.BusTopic, tspb.BusTopic.TRACKSTAR_EVENT);
 
 let mainContainer = document.querySelector('#mainContainer')
 
@@ -15,7 +15,7 @@ interface entry {
 let entries: entry[] = new Array();
 
 let handleTrackstar = (msg: buspb.BusMessage) => {
-    if (msg.type !== tspb.MessageType.TYPE_TRACK_UPDATE) {
+    if (msg.type !== tspb.MessageTypeEvent.TRACKSTAR_EVENT_TRACK_UPDATE) {
         return;
     }
     let tu = tspb.TrackUpdate.fromBinary(msg.message);
@@ -62,4 +62,4 @@ let download = () => {
 
 (document.querySelector('#download-button') as HTMLButtonElement).onclick = download;
 
-bus.subscribe(TOPIC_TRACKSTAR, handleTrackstar);
+bus.subscribe(TOPIC_TRACKSTAR_EVENT, handleTrackstar);

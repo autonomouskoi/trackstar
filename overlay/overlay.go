@@ -92,8 +92,8 @@ func (o *Overlay) Start(ctx context.Context, deps *modutil.ModuleDeps) error {
 					return
 				}
 				deps.Bus.Send(&bus.BusMessage{
-					Topic:   trackstar.BusTopic_TRACKSTAR.String(),
-					Type:    int32(trackstar.MessageType_TYPE_DECK_DISCOVERED),
+					Topic:   trackstar.BusTopic_TRACKSTAR_EVENT.String(),
+					Type:    int32(trackstar.MessageTypeEvent_TRACKSTAR_EVENT_DECK_DISCOVERED),
 					Message: b,
 				})
 			}
@@ -116,8 +116,8 @@ func (o *Overlay) Start(ctx context.Context, deps *modutil.ModuleDeps) error {
 						continue
 					}
 					deps.Bus.Send(&bus.BusMessage{
-						Topic:   trackstar.BusTopic_TRACKSTAR.String(),
-						Type:    int32(trackstar.MessageType_TYPE_TRACK_UPDATE),
+						Topic:   trackstar.BusTopic_TRACKSTAR_EVENT.String(),
+						Type:    int32(trackstar.MessageTypeEvent_TRACKSTAR_EVENT_TRACK_UPDATE),
 						Message: b,
 					})
 					i++

@@ -117,8 +117,8 @@ func (rbdb *RekordboxDB) handleRB(ctx context.Context) error {
 			}
 			rbdb.log.Debug("sending track", "track", track)
 			rbdb.bus.Send(&bus.BusMessage{
-				Topic:   trackstar.BusTopic_TRACKSTAR.String(),
-				Type:    int32(trackstar.MessageType_TYPE_TRACK_UPDATE),
+				Topic:   trackstar.BusTopic_TRACKSTAR_EVENT.String(),
+				Type:    int32(trackstar.MessageTypeEvent_TRACKSTAR_EVENT_TRACK_UPDATE),
 				Message: b,
 			})
 			lastTrackNo = trackNo

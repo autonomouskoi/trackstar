@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
 
+	"github.com/autonomouskoi/akcore"
 	"github.com/autonomouskoi/mageutil"
 )
 
@@ -42,7 +42,7 @@ func StagelinqTSProtos() error {
 func StagelinqVersion() error {
 	b, err := json.Marshal(map[string]string{
 		"Software": "aktrackstar stagelinq",
-		"Build":    time.Now().Format("20060102-1504"),
+		"Build":    akcore.Version,
 	})
 	if err != nil {
 		return fmt.Errorf("marshalling version: %w", err)

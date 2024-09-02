@@ -23,7 +23,7 @@ const (
 )
 
 func init() {
-	manfiest := &modules.Manifest{
+	manifest := &modules.Manifest{
 		Id:          "d6f95efeb3138d6e",
 		Name:        "trackstar",
 		Description: "Track songs played during your session",
@@ -35,7 +35,7 @@ func init() {
 			},
 		},
 	}
-	modules.Register(manfiest, &Trackstar{})
+	modules.Register(manifest, &Trackstar{})
 }
 
 //go:embed web.zip

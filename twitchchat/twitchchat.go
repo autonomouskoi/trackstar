@@ -196,14 +196,14 @@ func (tc *TwitchChat) handleRequestTrackAnnounce(msg *bus.BusMessage) *bus.BusMe
 
 func (tc *TwitchChat) handleChatMessagesIn(ctx context.Context) error {
 	in := make(chan *bus.BusMessage, 16)
-	tc.bus.Subscribe(twitch.BusTopics_TWITCH_CHAT_RECV.String(), in)
+	tc.bus.Subscribe(twitch.BusTopics_TWITCH_CHAT_EVENT.String(), in)
 	go func() {
 		<-ctx.Done()
-		tc.bus.Unsubscribe(twitch.BusTopics_TWITCH_CHAT_RECV.String(), in)
+		tc.bus.Unsubscribe(twitch.BusTopics_TWITCH_CHAT_EVENT.String(), in)
 		bus.Drain(in)
 	}()
 	for msg := range in {
-		cmi := &twitch.ChatMessageIn{}
+		cmi := &twitch.TwitchChatEventMessageIn{}
 		if err := proto.Unmarshal(msg.GetMessage(), cmi); err != nil {
 			tc.log.Error("unmarshalling", "type", "ChatMessageIn", "error", err.Error())
 			continue
@@ -255,7 +255,7 @@ func (tc *TwitchChat) handleChatMessagesIn(ctx context.Context) error {
 }
 
 func (tc *TwitchChat) sendTrackUpdate(tu *trackstar.TrackUpdate) {
-	b, err := proto.Marshal(&twitch.ChatMessageOut{
+	b, err := proto.Marshal(&twitch.TwitchChatRequestSendRequest{
 		Text: fmt.Sprintf("%s - %s", tu.Track.Artist, tu.Track.Title),
 	})
 	if err != nil {
@@ -263,7 +263,7 @@ func (tc *TwitchChat) sendTrackUpdate(tu *trackstar.TrackUpdate) {
 		return
 	}
 	tc.bus.Send(&bus.BusMessage{
-		Topic:   twitch.BusTopics_TWITCH_CHAT_SEND.String(),
+		Topic:   twitch.BusTopics_TWITCH_CHAT_REQUEST.String(),
 		Message: b,
 	})
 }

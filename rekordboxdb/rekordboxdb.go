@@ -106,21 +106,24 @@ func (rbdb *RekordboxDB) handleRB(ctx context.Context) error {
 				return fmt.Errorf("getting track: %w", err)
 			}
 			fmt.Printf("%s - %s\n", track.Artist, track.Title)
-			b, err := proto.Marshal(&trackstar.TrackUpdate{
-				DeckId: "Rekordbox",
-				Track:  track,
-				When:   time.Now().Unix(),
-			})
+			b, err := proto.Marshal(&trackstar.SubmitTrackRequest{
+				TrackUpdate: &trackstar.TrackUpdate{
+					DeckId: "Rekordbox",
+					Track:  track,
+					When:   time.Now().Unix(),
+				}})
 			if err != nil {
 				rbdb.log.Error("marshalling TrackUpdate", "error", err.Error())
 				continue
 			}
 			rbdb.log.Debug("sending track", "track", track)
-			rbdb.bus.Send(&bus.BusMessage{
-				Topic:   trackstar.BusTopic_TRACKSTAR_EVENT.String(),
-				Type:    int32(trackstar.MessageTypeEvent_TRACKSTAR_EVENT_TRACK_UPDATE),
+			subCtx, cancel := context.WithTimeout(ctx, time.Second)
+			_ = rbdb.bus.WaitForReply(subCtx, &bus.BusMessage{
+				Topic:   trackstar.BusTopic_TRACKSTAR_REQUEST.String(),
+				Type:    int32(trackstar.MessageTypeRequest_SUBMIT_TRACK_REQ),
 				Message: b,
 			})
+			cancel()
 			lastTrackNo = trackNo
 		}
 	}

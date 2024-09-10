@@ -7,19 +7,13 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
 	"sync"
-	"time"
-
-	"google.golang.org/protobuf/proto"
 
 	"github.com/autonomouskoi/akcore"
-	"github.com/autonomouskoi/akcore/bus"
 	"github.com/autonomouskoi/akcore/modules"
 	"github.com/autonomouskoi/akcore/modules/modutil"
 	"github.com/autonomouskoi/akcore/storage/kv"
 	"github.com/autonomouskoi/akcore/web/webutil"
-	"github.com/autonomouskoi/trackstar"
 )
 
 const (
@@ -79,52 +73,6 @@ func (o *Overlay) Start(ctx context.Context, deps *modutil.ModuleDeps) error {
 	}
 
 	defer o.writeCfg()
-
-	if os.Getenv("TRACKSTAR_OVERLAY_DEMO") != "" {
-		go func() {
-			deps.Log.Info("using demo mode")
-			time.Sleep(time.Second * 5)
-			for i := 1; i < 5; i++ {
-				b, err := proto.Marshal(&trackstar.DeckDiscovered{
-					DeckId: fmt.Sprint("Deck", i),
-				})
-				if err != nil {
-					return
-				}
-				deps.Bus.Send(&bus.BusMessage{
-					Topic:   trackstar.BusTopic_TRACKSTAR_EVENT.String(),
-					Type:    int32(trackstar.MessageTypeEvent_TRACKSTAR_EVENT_DECK_DISCOVERED),
-					Message: b,
-				})
-			}
-			i := 0
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				case <-time.After(time.Second * 5):
-					b, err := proto.Marshal(&trackstar.TrackUpdate{
-						DeckId: fmt.Sprintf("Deck%d", i%4+1),
-						Track: &trackstar.Track{
-							Artist: fmt.Sprint("Artist ", i),
-							Title:  fmt.Sprint("Title ", i),
-						},
-						When: time.Now().Unix(),
-					})
-					if err != nil {
-						deps.Log.Error("marshalling TrackUpdate proto", "error", err.Error())
-						continue
-					}
-					deps.Bus.Send(&bus.BusMessage{
-						Topic:   trackstar.BusTopic_TRACKSTAR_EVENT.String(),
-						Type:    int32(trackstar.MessageTypeEvent_TRACKSTAR_EVENT_TRACK_UPDATE),
-						Message: b,
-					})
-					i++
-				}
-			}
-		}()
-	}
 
 	o.handleRequests(ctx)
 

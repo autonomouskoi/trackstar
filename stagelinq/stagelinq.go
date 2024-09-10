@@ -430,19 +430,20 @@ func (sl *StagelinQ) maybeNotify(ds *deckState) {
 		return
 	}
 
-	b, err := proto.Marshal(&trackstar.TrackUpdate{
-		DeckId: ds.deckID,
-		Track:  ds.track,
-		When:   time.Now().Unix(),
-	})
+	b, err := proto.Marshal(&trackstar.SubmitTrackRequest{
+		TrackUpdate: &trackstar.TrackUpdate{
+			DeckId: ds.deckID,
+			Track:  ds.track,
+			When:   time.Now().Unix(),
+		}})
 	if err != nil {
 		sl.log.Error("marshalling Track proto", "error", err.Error())
 		return
 	}
 	sl.log.Debug("sending track", "track", ds.track)
 	sl.bus.Send(&bus.BusMessage{
-		Topic:   trackstar.BusTopic_TRACKSTAR_EVENT.String(),
-		Type:    int32(trackstar.MessageTypeEvent_TRACKSTAR_EVENT_TRACK_UPDATE),
+		Topic:   trackstar.BusTopic_TRACKSTAR_REQUEST.String(),
+		Type:    int32(trackstar.MessageTypeRequest_SUBMIT_TRACK_REQ),
 		Message: b,
 	})
 	ds.notified = true

@@ -9,6 +9,13 @@ enum BusTopic {
     TRACKSTAR_COMMAND = 2;
 }
 
+message Config {
+    uint32              demo_delay_seconds   = 1;
+    bool                clear_bracketed_text = 2;
+    uint32              track_delay_seconds  = 3;
+    map<string, Track>  track_replacements   = 4;
+}
+
 enum MessageTypeEvent {
     TRACKSTAR_EVENT_UNSPECIFIED       = 0;
     TRACKSTAR_EVENT_DECK_DISCOVERED   = 1;
@@ -34,6 +41,12 @@ message Track {
 enum MessageTypeRequest {
     TRACKSTAR_REQUEST_GET_TRACK_REQ  = 0;
     TRACKSTAR_REQUEST_GET_TRACK_RESP = 1;
+    SUBMIT_TRACK_REQ                 = 2;
+    SUBMIT_TRACK_RESP                = 3;
+    CONFIG_GET_REQ                   = 4;
+    CONFIG_GET_RESP                  = 5;
+    GET_ALL_TRACKS_REQ               = 6;
+    GET_ALL_TRACKS_RESP              = 7;
 }
 
 message GetTrackRequest {
@@ -41,4 +54,31 @@ message GetTrackRequest {
 }
 message GetTrackResponse {
     TrackUpdate  track_update = 1;
+}
+
+message GetAllTracksRequest {}
+message GetAllTracksResponse {
+    repeated TrackUpdate  tracks = 1;
+}
+
+message SubmitTrackRequest {
+    TrackUpdate  track_update = 1;
+}
+message SubmitTrackResponse {}
+
+message ConfigGetRequest {}
+message ConfigGetResponse {
+    Config  config = 1;
+}
+
+enum MessageTypeCommand {
+    CONFIG_SET_REQ  = 0;
+    CONFIG_SET_RESP = 1;
+}
+
+message ConfigSetRequest {
+    Config config = 1;
+}
+message ConfigSetResponse {
+    Config config = 1;
 }

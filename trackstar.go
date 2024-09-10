@@ -3,23 +3,31 @@ package trackstar
 import (
 	"context"
 	_ "embed"
+	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
+	"regexp"
+	"strings"
 	"sync"
 	"time"
 
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/autonomouskoi/akcore"
 	"github.com/autonomouskoi/akcore/bus"
 	"github.com/autonomouskoi/akcore/modules"
 	"github.com/autonomouskoi/akcore/modules/modutil"
+	"github.com/autonomouskoi/akcore/storage/kv"
 	"github.com/autonomouskoi/akcore/web/webutil"
 )
 
 const (
 	EnvLocalContentPath = "AK_TRACKSTAR_CONTENT"
+)
+
+var (
+	cfgKVKey = []byte("config")
 )
 
 func init() {
@@ -30,8 +38,8 @@ func init() {
 		WebPaths: []*modules.ManifestWebPath{
 			{
 				Path:        "/m/trackstar/",
-				Type:        modules.ManifestWebPathType_MANIFEST_WEB_PATH_TYPE_GENERAL,
-				Description: "Log of discovered tracks",
+				Type:        *modules.ManifestWebPathType_MANIFEST_WEB_PATH_TYPE_EMBED_CONTROL.Enum(),
+				Description: "Configuration and track log",
 			},
 		},
 	}
@@ -43,15 +51,26 @@ var webZip []byte
 
 type Trackstar struct {
 	http.Handler
-	bus     *bus.Bus
-	lock    sync.Mutex
-	log     *slog.Logger
-	updates []*TrackUpdate
+	modutil.ModuleBase
+	bus        *bus.Bus
+	cfg        *Config
+	kv         kv.KVPrefix
+	lock       sync.Mutex
+	updates    []*TrackUpdate
+	demoCancel func()
 }
 
 func (ts *Trackstar) Start(ctx context.Context, deps *modutil.ModuleDeps) error {
 	ts.bus = deps.Bus
-	ts.log = deps.Log
+	ts.Log = deps.Log
+	ts.kv = deps.KV
+
+	if err := ts.loadConfig(); err != nil {
+		return fmt.Errorf("loading config: %w", err)
+	}
+	defer ts.writeCfg()
+
+	ts.demoMode()
 
 	fs, err := webutil.ZipOrEnvPath(EnvLocalContentPath, webZip)
 	if err != nil {
@@ -60,69 +79,32 @@ func (ts *Trackstar) Start(ctx context.Context, deps *modutil.ModuleDeps) error 
 	ts.Handler = http.StripPrefix("/m/trackstar", http.FileServer(fs))
 
 	eg := errgroup.Group{}
-	eg.Go(func() error { return ts.handleEvents(ctx) })
 	eg.Go(func() error { return ts.handleRequests(ctx) })
+	eg.Go(func() error { return ts.handleCommands(ctx) })
 
 	return eg.Wait()
 }
 
-func (ts *Trackstar) handleEvents(ctx context.Context) error {
-	in := make(chan *bus.BusMessage, 16)
-	go func() {
-		<-ctx.Done()
-		ts.bus.Unsubscribe(BusTopic_TRACKSTAR_EVENT.String(), in)
-		bus.Drain(in)
-	}()
-	ts.bus.Subscribe(BusTopic_TRACKSTAR_EVENT.String(), in)
-	for msg := range in {
-		switch msg.Type {
-		case int32(MessageTypeEvent_TRACKSTAR_EVENT_TRACK_UPDATE):
-			tu := &TrackUpdate{}
-			if err := proto.Unmarshal(msg.Message, tu); err != nil {
-				ts.log.Error("unmarshalling TrackUpdate", "error", err.Error())
-				continue
-			}
-			ts.lock.Lock()
-			ts.updates = append(ts.updates, tu)
-			ts.lock.Unlock()
-		}
-	}
-	return nil
-}
-
 func (ts *Trackstar) handleRequests(ctx context.Context) error {
-	in := make(chan *bus.BusMessage, 8)
-	ts.bus.Subscribe(BusTopic_TRACKSTAR_REQUEST.String(), in)
-	go func() {
-		<-ctx.Done()
-		ts.bus.Unsubscribe(BusTopic_TRACKSTAR_REQUEST.String(), in)
-		bus.Drain(in)
-	}()
-	for msg := range in {
-		var reply *bus.BusMessage
-		switch msg.Type {
-		case int32(MessageTypeRequest_TRACKSTAR_REQUEST_GET_TRACK_REQ):
-			reply = ts.handleGetTrackRequest(msg)
-		}
-		if reply != nil {
-			ts.bus.SendReply(msg, reply)
-		}
-	}
+	ts.bus.HandleTypes(ctx, BusTopic_TRACKSTAR_REQUEST.String(), 8,
+		map[int32]bus.MessageHandler{
+			int32(MessageTypeRequest_TRACKSTAR_REQUEST_GET_TRACK_REQ): ts.handleGetTrackRequest,
+			int32(MessageTypeRequest_SUBMIT_TRACK_REQ):                ts.handleRequestSubmitTrack,
+			int32(MessageTypeRequest_CONFIG_GET_REQ):                  ts.handleRequestConfigGet,
+			int32(MessageTypeRequest_GET_ALL_TRACKS_REQ):              ts.handleRequestGetAllTracks,
+		},
+		nil,
+	)
 	return nil
 }
 
 func (ts *Trackstar) handleGetTrackRequest(msg *bus.BusMessage) *bus.BusMessage {
 	reply := &bus.BusMessage{
 		Topic: msg.GetTopic(),
-		Type:  int32(MessageTypeRequest_TRACKSTAR_REQUEST_GET_TRACK_RESP),
+		Type:  msg.Type + 1,
 	}
 	gtr := &GetTrackRequest{}
-	if err := proto.Unmarshal(msg.Message, gtr); err != nil {
-		ts.log.Error("unmarshalling", "type", "GetTrackRequest", "error", err.Error())
-		reply.Error = &bus.Error{
-			Code:   int32(bus.CommonErrorCode_INVALID_TYPE),
-			Detail: proto.String("unmarshalling GetTrackRequest: " + err.Error()),
-		}
+	if reply.Error = ts.UnmarshalMessage(msg, gtr); reply.Error != nil {
 		return reply
 	}
 	ts.lock.Lock()
@@ -144,14 +126,141 @@ func (ts *Trackstar) handleGetTrackRequest(msg *bus.BusMessage) *bus.BusMessage 
 		}
 		gtResp.TrackUpdate = tu
 	}
-	b, err := proto.Marshal(gtResp)
-	if err != nil {
-		ts.log.Error("marshalling", "type", "GetTrackResponse", "error", err.Error())
-		reply.Error = &bus.Error{
-			Code:   int32(bus.CommonErrorCode_INVALID_TYPE),
-			Detail: proto.String("marshalling GetTrackResponse: " + err.Error()),
+	ts.MarshalMessage(reply, gtResp)
+	return reply
+}
+
+var bracketRE = regexp.MustCompile(`\[.*\]`)
+var multispaceRE = regexp.MustCompile(`\s{2,}`)
+
+func (ts *Trackstar) mungeTrackUpdate(tu *TrackUpdate) {
+	for match, replace := range ts.cfg.TrackReplacements {
+		if strings.TrimSpace(match) == "" {
+			continue
+		}
+		if strings.Contains(tu.Track.Artist, match) || strings.Contains(tu.Track.Title, match) {
+			tu.Track.Artist = replace.Artist
+			tu.Track.Title = replace.Title
+			return
 		}
 	}
-	reply.Message = b
+	if ts.cfg.ClearBracketedText {
+		tu.Track.Artist = bracketRE.ReplaceAllString(tu.Track.Artist, " ")
+		tu.Track.Artist = multispaceRE.ReplaceAllString(tu.Track.Artist, " ")
+		tu.Track.Title = bracketRE.ReplaceAllString(tu.Track.Title, " ")
+		tu.Track.Title = multispaceRE.ReplaceAllString(tu.Track.Title, " ")
+	}
+	tu.Track.Artist = strings.TrimSpace(tu.Track.Artist)
+	tu.Track.Title = strings.TrimSpace(tu.Track.Title)
+}
+
+func (ts *Trackstar) handleRequestSubmitTrack(msg *bus.BusMessage) *bus.BusMessage {
+	reply := &bus.BusMessage{
+		Topic: msg.Topic,
+		Type:  msg.Type + 1,
+	}
+	str := &SubmitTrackRequest{}
+	if reply.Error = ts.UnmarshalMessage(msg, str); reply.Error != nil {
+		return reply
+	}
+	ts.mungeTrackUpdate(str.TrackUpdate)
+
+	go func() {
+		time.Sleep(time.Second * time.Duration(ts.cfg.TrackDelaySeconds))
+		ts.lock.Lock()
+		ts.updates = append(ts.updates, str.TrackUpdate)
+		ts.lock.Unlock()
+
+		tuMsg := &bus.BusMessage{
+			Topic: BusTopic_TRACKSTAR_EVENT.String(),
+			Type:  int32(MessageTypeEvent_TRACKSTAR_EVENT_TRACK_UPDATE),
+		}
+		tuMsg.Message, _ = proto.Marshal(str.TrackUpdate)
+		ts.Log.Debug("sending track", "deck_id", str.TrackUpdate.DeckId,
+			"artist", str.TrackUpdate.Track.Artist,
+			"title", str.TrackUpdate.Track.Title,
+		)
+		ts.bus.Send(tuMsg)
+	}()
+
+	ts.MarshalMessage(reply, &SubmitTrackResponse{})
 	return reply
+}
+
+func (ts *Trackstar) handleRequestConfigGet(msg *bus.BusMessage) *bus.BusMessage {
+	reply := &bus.BusMessage{
+		Topic: msg.GetTopic(),
+		Type:  msg.Type + 1,
+	}
+	ts.lock.Lock()
+	ts.MarshalMessage(reply, &ConfigGetResponse{
+		Config: ts.cfg,
+	})
+	ts.lock.Unlock()
+	return reply
+}
+
+func (ts *Trackstar) handleRequestGetAllTracks(msg *bus.BusMessage) *bus.BusMessage {
+	reply := &bus.BusMessage{
+		Topic: msg.GetTopic(),
+		Type:  msg.Type + 1,
+	}
+	ts.lock.Lock()
+	ts.MarshalMessage(reply, &GetAllTracksResponse{
+		Tracks: ts.updates,
+	})
+	ts.lock.Unlock()
+	return reply
+}
+
+func (ts *Trackstar) handleCommands(ctx context.Context) error {
+	ts.bus.HandleTypes(ctx, BusTopic_TRACKSTAR_COMMAND.String(), 4,
+		map[int32]bus.MessageHandler{
+			int32(MessageTypeCommand_CONFIG_SET_REQ): ts.handleCommandConfigSet,
+		},
+		nil,
+	)
+	return nil
+}
+
+func (ts *Trackstar) handleCommandConfigSet(msg *bus.BusMessage) *bus.BusMessage {
+	reply := &bus.BusMessage{
+		Topic: msg.GetTopic(),
+		Type:  msg.Type + 1,
+	}
+	csr := &ConfigSetRequest{}
+	if reply.Error = ts.UnmarshalMessage(msg, csr); reply.Error != nil {
+		return reply
+	}
+	ts.lock.Lock()
+	demoDiffers := csr.GetConfig().GetDemoDelaySeconds() != ts.cfg.GetDemoDelaySeconds()
+	ts.cfg = csr.GetConfig()
+	ts.lock.Unlock()
+	ts.writeCfg()
+	ts.MarshalMessage(reply, &ConfigSetResponse{
+		Config: ts.cfg,
+	})
+	if demoDiffers {
+		if ts.demoCancel != nil {
+			ts.demoCancel()
+		}
+		ts.demoMode()
+	}
+	return reply
+}
+
+func (ts *Trackstar) loadConfig() error {
+	ts.cfg = &Config{}
+	if err := ts.kv.GetProto(cfgKVKey, ts.cfg); err != nil && !errors.Is(err, akcore.ErrNotFound) {
+		return fmt.Errorf("retrieving config: %w", err)
+	}
+	return nil
+}
+
+func (ts *Trackstar) writeCfg() {
+	ts.lock.Lock()
+	defer ts.lock.Unlock()
+	if err := ts.kv.SetProto(cfgKVKey, ts.cfg); err != nil {
+		ts.Log.Error("writing config", "error", err.Error())
+	}
 }

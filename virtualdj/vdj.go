@@ -117,16 +117,17 @@ func (vdj *VirtualDJ) handleVDJ(ctx context.Context) error {
 			continue
 		}
 		vdj.log.Debug("sending track", "artist", e.Artist, "title", e.Title)
-		b, _ := proto.Marshal(&trackstar.TrackUpdate{
-			Track: &trackstar.Track{
-				Artist: e.Artist,
-				Title:  e.Title,
-			},
-			When: time.Now().Unix(),
-		})
+		b, _ := proto.Marshal(&trackstar.SubmitTrackRequest{
+			TrackUpdate: &trackstar.TrackUpdate{
+				Track: &trackstar.Track{
+					Artist: e.Artist,
+					Title:  e.Title,
+				},
+				When: time.Now().Unix(),
+			}})
 		vdj.bus.Send(&bus.BusMessage{
-			Topic:   trackstar.BusTopic_TRACKSTAR_EVENT.String(),
-			Type:    int32(trackstar.MessageTypeEvent_TRACKSTAR_EVENT_TRACK_UPDATE),
+			Topic:   trackstar.BusTopic_TRACKSTAR_REQUEST.String(),
+			Type:    int32(trackstar.MessageTypeRequest_SUBMIT_TRACK_REQ),
 			Message: b,
 		})
 	}

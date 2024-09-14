@@ -37,6 +37,8 @@ func (ts *Trackstar) demoMode() {
 		return
 	}
 
+	rand := rand.New(rand.NewSource(uint64(time.Now().UnixNano())))
+
 	interval := time.Second * time.Duration(ts.cfg.DemoDelaySeconds)
 	ctx, demoCancel := context.WithCancel(context.Background())
 	ts.demoCancel = demoCancel

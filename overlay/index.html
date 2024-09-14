@@ -1,43 +1,82 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Trackstar Overlay</title>
-        <link href="/titillium.css" rel="stylesheet">
         <link href="/main.css" rel="stylesheet">
+        <link href="/titillium.css" rel="stylesheet">
+        <title>AutonomousKoi</title>
         <style>
-body {
-    height: 100%;
-    margin: 0;
-    -webkit-text-stroke-width: 1px;
+/* fadeOut/fadeIn describe animations used below */
+@keyframes fadeOut {
+    0% {
+        opacity: 1.0;
+    }
+    100% {
+        opacity: 0.0;
+    }
 }
-#mainContainer {
-    display: flex;
-    flex-direction: row;
-    transform-origin: top left;
+@keyframes fadeIn {
+    0% {
+        opacity: 0.0;
+    }
+    100% {
+        opacity: 1.0;
+    }
 }
-#decksContainer {
-    height: 208px;
+/* an element with the fadeIn class will go from fully transparent to fully
+   opaque over 3 seconds
+*/
+.fadeIn {
+    animation-duration: 3s;
+    animation-name: fadeIn;
 }
-#deck {
-    /*
-    border: solid black 1px;
-    border-radius: 5px;
-    */
-    padding: 5px;
-    width: 208px;
-    font-family: "Titillium Web", sans-serif;
-    color: #FFF;
-    text-shadow: 0 0 2px #000;
+/* an element with the fadeOut class will go from fully opaque to fully
+   transparent over 1 seconds
+*/
+.fadeOut {
+    animation-duration: 1s;
+    animation-name: fadeOut;
 }
-#colorSelect {
+/* track is a box containing all the track details.
+    - This box is 200 pixels wide
+    - It reserves space below it that's half as tall as the text
+*/
+.track {
+    width: 200px;
+    padding-bottom: 0.5rem;
+}
+/* The deck ID is meaningless for most so it is hidden */
+.deck-id {
     display: none;
 }
+/* The timestamp of when the track is played isn't useful to most so it's hidden */
+.when {
+    display: none;
+}
+/* The track's artist
+    - The height of its box is 1.5 times the height of the text
+    - If the text is too long to fit in the width (defined by .track) the
+      excess is hidden
+*/
+.artist {
+    height: 1.5rem;
+    overflow: hidden;
+}
+/* The track's title
+    - Make the title italicized to differentiate it from the artist
+    - The height of its box is 1.5 times the height of the text
+    - If the text is too long to fit in the width (defined by .track) the
+      excess is hidden
+*/
+.title {
+    font-style: italic;
+    height: 1.5rem;
+    overflow: hidden;
+}
         </style>
+        <link href="./custom-css" rel="stylesheet" id="custom-css-link" />
     </head>
     <body>
-        <div id="mainContainer">
-            <div id="decksContainer"></div>
-        </div>
+        <div id="mainContainer"></div>
     </body>
     <script type="importmap">
         {
@@ -46,5 +85,10 @@ body {
             }
         }
     </script>
-    <script type="module" src="./overlay.js"></script>
+    <script type="module">
+import("./overlay.js").then((mod) => {
+    let mainContainer = document.querySelector('#mainContainer');
+    mod.start(mainContainer);
+});
+    </script>
 </html>

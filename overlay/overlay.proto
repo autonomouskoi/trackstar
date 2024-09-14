@@ -10,12 +10,14 @@ enum BusTopic {
 
 enum MessageType {
     UNSPECIFIED         = 0;
-    STYLE_UPDATE        = 1;
+    CONFIG_UPDATED      = 1;
     SET_STYLE           = 2;
     GET_CONFIG_REQUEST  = 3;
     GET_CONFIG_RESPONSE = 4;
     SET_TRACK_COUNT     = 5;
     TRACK_COUNT_UPDATE  = 6;
+    CONFIG_SET_REQ      = 7;
+    CONFIG_SET_RESP     = 8;
 }
 
 message StyleUpdate {
@@ -27,11 +29,10 @@ message StyleUpdate {
 message Config {
     repeated  StyleUpdate  styles      = 1;
               uint32       track_count = 2;
+              string       custom_css  = 3;
 }
 
-message GetConfigRequest {
-
-}
+message GetConfigRequest { }
 
 message GetConfigResponse {
     Config  config = 1;
@@ -43,4 +44,11 @@ message SetTrackCount {
 
 message TrackCountUpdate {
     uint32  count = 1;
+}
+
+message ConfigSetRequest {
+    Config  config = 1;
+}
+message ConfigSetResponse {
+    Config  config = 1;
 }

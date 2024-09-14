@@ -1,93 +1,13 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:ital,wght@0,200;0,300;0,400;0,600;0,700;0,900;1,200;1,300;1,400;1,600;1,700&display=swap" rel="stylesheet">
-        <title>Trackstar Overlay Configuration</title>
-        <style>
-body {
-    font-family: "Titillium Web", sans-serif;
-}
-main {
-    display: grid;
-    grid-template-columns: [label] max-content [control] auto;
-    column-gap: 1rem; 
-}
-label {
-    font-weight: bolder;
-}
-h2 {
-    grid-column: 1 / span 2;
-}
-        </style>
+        <link href="/main.css" rel="stylesheet">
+        <link href="/titillium.css" rel="stylesheet">
+        <title>AutonomousKoi</title>
     </head>
     <body>
-        <h1>Trackstar Overlay Configuration</h1>
-        <main>
-            <h2>Box</h2>
-            <label for="count-slider">Track Count</label>
-            <div>
-                <input type="range"
-                    id="count-slider"
-                    min="1"
-                    max="10"
-                    step="1"
-                    list="markers"
-                />
-                <datalist id="markers">
-                    <option value="1"></option>
-                    <option value="2"></option>
-                    <option value="5"></option>
-                    <option value="10"></option>
-                </datalist>
-                <span id="count-value"></span>
-            </div>
-            <label for="scale-slider">Scale</label>
-            <div>
-                <input type="range"
-                    id="scale-slider"
-                    min="0"
-                    max="10"
-                    step="0.1"
-                />
-                <input type="number"
-                    id="scale-input"
-                    size="3"
-                />
-            </div>
-            <h2>Text</h2>
-            <label for="text-scale-slider">Text Scale</label>
-            <div>
-                <input type="range"
-                    id="text-scale-slider"
-                    min="0"
-                    max="10"
-                    step="0.1"
-                />
-                <input type="text"
-                    id="text-scale-input"
-                    size="3"
-                />
-            </div>
-            <label for="main-text-color">Color</label>
-            <input type="color"
-                id="text-color"
-            />
-            <label for="text-outline-color">Outline Color</label>
-            <input type="color"
-                id="text-outline-color"
-            />
-            <label for="text-outline-width">Outline Width</label>
-            <div>
-                <input type="number"
-                    id="text-outline-width"
-                    value="1"
-                    size="3"
-                    step="1"
-                />px
-            </div>
-        </main>
+        <div id="mainContainer">
+        </div>
     </body>
     <script type="importmap">
         {
@@ -96,5 +16,10 @@ h2 {
             }
         }
     </script>
-    <script type="module" src="./ui.js"></script>
+    <script type="module">
+import("./main.js").then((mod) => {
+    let mainContainer = document.querySelector('#mainContainer');
+    mod.start(mainContainer);
+});
+    </script>
 </html>

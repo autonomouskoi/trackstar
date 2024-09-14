@@ -5,11 +5,14 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
-	"log/slog"
+	"io"
 	"net/http"
+	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/autonomouskoi/akcore"
+	"github.com/autonomouskoi/akcore/bus"
 	"github.com/autonomouskoi/akcore/modules"
 	"github.com/autonomouskoi/akcore/modules/modutil"
 	"github.com/autonomouskoi/akcore/storage/kv"
@@ -38,7 +41,7 @@ func init() {
 			{
 				Path:        "/m/trackstaroverlay/ui.html",
 				Type:        modules.ManifestWebPathType_MANIFEST_WEB_PATH_TYPE_EMBED_CONTROL,
-				Description: "Overlay Configuration",
+				Description: "Overlay Customization",
 			},
 		},
 	}
@@ -47,32 +50,37 @@ func init() {
 
 type Overlay struct {
 	http.Handler
-	deps *modutil.ModuleDeps
+	modutil.ModuleBase
+	bus  *bus.Bus
 	lock sync.Mutex
-	log  *slog.Logger
 	cfg  *Config
 	kv   *kv.KVPrefix
 }
 
 func (o *Overlay) Start(ctx context.Context, deps *modutil.ModuleDeps) error {
-	fs, err := webutil.ZipOrEnvPath(EnvLocalContentPath, overlayHTML)
-	if err != nil {
-		return err
-	}
-	o.Handler = http.StripPrefix("/m/trackstaroverlay", http.FileServer(fs))
-	o.deps = deps
+	o.Log = deps.Log
+	o.bus = deps.Bus
 	o.kv = &deps.KV
-	o.log = deps.Log
 
 	o.cfg = &Config{}
 	if err := o.kv.GetProto(cfgKVKey, o.cfg); err != nil && !errors.Is(err, akcore.ErrNotFound) {
 		return fmt.Errorf("retrieving config: %w", err)
 	}
-	if o.cfg.TrackCount == 0 {
-		o.cfg.TrackCount = 5
-	}
-
 	defer o.writeCfg()
+
+	fs, err := webutil.ZipOrEnvPath(EnvLocalContentPath, overlayHTML)
+	if err != nil {
+		return err
+	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/custom-css", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/css")
+		w.Header().Set("Content-Length", strconv.Itoa(len(o.cfg.CustomCss)))
+		w.Header().Set("Cache-Control", "no-store")
+		io.Copy(w, strings.NewReader(o.cfg.CustomCss))
+	})
+	mux.Handle("/", http.FileServer(fs))
+	o.Handler = http.StripPrefix("/m/trackstaroverlay", mux)
 
 	o.handleRequests(ctx)
 
@@ -86,6 +94,6 @@ func (o *Overlay) writeCfg() {
 	o.lock.Lock()
 	defer o.lock.Unlock()
 	if err := o.kv.SetProto(cfgKVKey, o.cfg); err != nil {
-		o.log.Error("writing config", "error", err.Error())
+		o.Log.Error("writing config", "error", err.Error())
 	}
 }

@@ -32,7 +32,7 @@ function start(mainContainer: HTMLElement) {
         let start = customCSS.selectionStart;
         let end = customCSS.selectionEnd;
         customCSS.value = customCSS.value.substring(0, start) + '\t' + customCSS.value.substring(end);
-        customCSS.selectionStart = end + 1;
+        customCSS.selectionStart = customCSS.selectionEnd = start+1;
     });
 
     let colorLabel = mainContainer.querySelector('label') as HTMLLabelElement;

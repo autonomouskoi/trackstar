@@ -6,7 +6,10 @@ class TrackUpdate extends HTMLElement {
     constructor() {
         super();
         this.innerHTML = `
-<div id="track" class="track"></div>
+<div id="track" class="track">
+    <div class="artist">AutonomousKoi</div>
+    <div class="title">Trackstar</div>
+</div>
 `;
         this._dev_track = this.querySelector('#track');
     }
@@ -17,10 +20,15 @@ class TrackUpdate extends HTMLElement {
         this._dev_track.addEventListener('animationend', () => {
             let when = new Date(Number(tu.when) * 1000);
             this._dev_track.innerHTML = `
+<div class="before-deck-id"></div>
 <div class="deck-id">${tu.deckId}</div>
+<div class="before-when"></div>
 <time class="when">${when}</time>
+<div class="before-artist"></div>
 <div class="artist">${tu.track.artist}</div>
+<div class="before-title"></div>
 <div class="title">${tu.track.title}</div>
+<div class="before-end"></div>
 `;
             this._dev_track.classList.remove('fadeOut');
             this._dev_track.classList.add('fadeIn');

@@ -39,11 +39,22 @@
 /* track is a box containing all the track details.
     - This box is 200 pixels wide
     - It reserves space below it that's half as tall as the text
+    - Make the text big and bold
+    - Use text-shadow to create a px outline
 */
 .track {
     width: 200px;
     padding-bottom: 0.5rem;
+    font-size: 48px;
+    font-weight: bolder;
+    text-shadow: #FFF 0px 0 2px;
 }
+
+/* The before- let you introduce things between values */
+.before-deck-id, .before-when, .before-artist, .before-title, .before-end {
+    display: none;
+}
+
 /* The deck ID is meaningless for most so it is hidden */
 .deck-id {
     display: none;
@@ -54,23 +65,21 @@
 }
 /* The track's artist
     - The height of its box is height of one line of text
-    - If the text is too long to fit in the width (defined by .track) the
-      excess is hidden
+    - The box is very wide to reduce the chance of wrapping
 */
 .artist {
-    height: 1lh;
-    overflow: hidden;
+    height: 1em;
+    width: 500%;
 }
 /* The track's title
     - Make the title italicized to differentiate it from the artist
     - The height of its box is height of one line of text
-    - If the text is too long to fit in the width (defined by .track) the
-      excess is hidden
+    - The box is very wide to reduce the chance of wrapping
 */
 .title {
     font-style: italic;
-    height: 1lh;
-    overflow: hidden;
+    height: 1em;
+    width: 500%;
 }
         </style>
         <link href="./custom-css" rel="stylesheet" id="custom-css-link" />

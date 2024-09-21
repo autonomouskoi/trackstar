@@ -29,7 +29,13 @@ func init() {
 		Id:          "8bd0166d36fec0c5",
 		Name:        "trackstarvirtualdj",
 		Description: "Retrieve real-time track information from VirtualDJ by reading History files",
-		WebPaths:    []*modules.ManifestWebPath{},
+		WebPaths: []*modules.ManifestWebPath{
+			{
+				Path:        "https://autonomouskoi.org/mod-trackstarvirtualdj.html",
+				Type:        modules.ManifestWebPathType_MANIFEST_WEB_PATH_TYPE_HELP,
+				Description: "Help!",
+			},
+		},
 	}
 	modules.Register(manifest, &VirtualDJ{})
 }

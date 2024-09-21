@@ -1,4 +1,11 @@
-import * as tspb from '/m/trackstar/pb/trackstar_pb.js';
+interface TU {
+    deckId: string;
+    when: bigint;
+    track?: {
+        artist: string;
+        title: string;
+    };
+}
 
 class TrackUpdate extends HTMLElement {
     private _dev_track: HTMLDivElement;
@@ -14,7 +21,7 @@ class TrackUpdate extends HTMLElement {
         this._dev_track = this.querySelector('#track');
     }
 
-    set trackUpdate (tu: tspb.TrackUpdate) {
+    set trackUpdate (tu: TU) {
         this._dev_track.classList.remove('fadeIn');
         this._dev_track.classList.add('fadeOut');
         this._dev_track.addEventListener('animationend', () => {

@@ -39,6 +39,11 @@ func init() {
 		Description: "Trackstar integration with Twitch chat",
 		WebPaths: []*modules.ManifestWebPath{
 			{
+				Path:        "https://autonomouskoi.org/mod-trackstartwitchchat.html",
+				Type:        modules.ManifestWebPathType_MANIFEST_WEB_PATH_TYPE_HELP,
+				Description: "Help!",
+			},
+			{
 				Path:        "/m/trackstartwitchchat/",
 				Type:        modules.ManifestWebPathType_MANIFEST_WEB_PATH_TYPE_EMBED_CONTROL,
 				Description: "Configuration",

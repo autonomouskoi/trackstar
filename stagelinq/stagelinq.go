@@ -49,6 +49,11 @@ func init() {
 		Description: "Retrieve real-time track information from StagelinQ-capable Denon DJ devices",
 		WebPaths: []*modules.ManifestWebPath{
 			{
+				Path:        "https://autonomouskoi.org/mod-trackstarstaglinq.html",
+				Type:        modules.ManifestWebPathType_MANIFEST_WEB_PATH_TYPE_HELP,
+				Description: "Help!",
+			},
+			{
 				Path:        "/m/trackstarstagelinq/",
 				Description: "Stagelinq Controls",
 				Type:        modules.ManifestWebPathType_MANIFEST_WEB_PATH_TYPE_EMBED_CONTROL,

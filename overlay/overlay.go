@@ -34,6 +34,11 @@ func init() {
 		Description: "OBS Overlay for Trackstar",
 		WebPaths: []*modules.ManifestWebPath{
 			{
+				Path:        "https://autonomouskoi.org/mod-trackstaroverlay.html",
+				Type:        modules.ManifestWebPathType_MANIFEST_WEB_PATH_TYPE_HELP,
+				Description: "Help!",
+			},
+			{
 				Path:        "/m/trackstaroverlay/",
 				Type:        modules.ManifestWebPathType_MANIFEST_WEB_PATH_TYPE_OBS_OVERLAY,
 				Description: "OBS Overlay",

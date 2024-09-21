@@ -23,7 +23,7 @@ func init() {
 		Description: "Retrieve real-time track information directly from the Rekordbox database. There's a delay configured in Rekordbox Preferences -> Advanced -> Browse -> Playback time setting",
 		WebPaths: []*modules.ManifestWebPath{
 			{
-				Path:        "https://autonomouskoi.org/mod-trackstarrekordboxdb.html",
+				Path:        "https://autonomouskoi.org/module-trackstarrekordboxdb.html",
 				Type:        modules.ManifestWebPathType_MANIFEST_WEB_PATH_TYPE_HELP,
 				Description: "Help!",
 			},

@@ -31,7 +31,7 @@ func init() {
 		Description: "Retrieve real-time track information from VirtualDJ by reading History files",
 		WebPaths: []*modules.ManifestWebPath{
 			{
-				Path:        "https://autonomouskoi.org/mod-trackstarvirtualdj.html",
+				Path:        "https://autonomouskoi.org/module-trackstarvirtualdj.html",
 				Type:        modules.ManifestWebPathType_MANIFEST_WEB_PATH_TYPE_HELP,
 				Description: "Help!",
 			},

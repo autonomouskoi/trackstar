@@ -37,7 +37,7 @@ func init() {
 		Description: "Track songs played during your session",
 		WebPaths: []*modules.ManifestWebPath{
 			{
-				Path:        "https://autonomouskoi.org/mod-trackstar.html",
+				Path:        "https://autonomouskoi.org/module-trackstar.html",
 				Type:        modules.ManifestWebPathType_MANIFEST_WEB_PATH_TYPE_HELP,
 				Description: "Help!",
 			},

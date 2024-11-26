@@ -9,9 +9,6 @@ const TOPIC_REQUEST = enumName(tspb.BusTopic, tspb.BusTopic.TRACKSTAR_REQUEST);
 const TOPIC_COMMAND = enumName(tspb.BusTopic, tspb.BusTopic.TRACKSTAR_COMMAND);
 
 function start(mainContainer: HTMLElement) {
-    document.querySelector("title").innerText = 'Trackstar Configuration';
-    mainContainer.innerText = 'Loading...';
-
     let cfg = new config.Config();
     let lg = new log.Log();
 

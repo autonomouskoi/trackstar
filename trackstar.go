@@ -42,8 +42,13 @@ func init() {
 				Description: "Help!",
 			},
 			{
-				Path:        "/m/trackstar/",
-				Type:        *modules.ManifestWebPathType_MANIFEST_WEB_PATH_TYPE_EMBED_CONTROL.Enum(),
+				Path:        "/m/trackstar/embed_ctrl.js",
+				Type:        modules.ManifestWebPathType_MANIFEST_WEB_PATH_TYPE_EMBED_CONTROL,
+				Description: "Configuration and track log",
+			},
+			{
+				Path:        "/m/trackstar/index.html",
+				Type:        modules.ManifestWebPathType_MANIFEST_WEB_PATH_TYPE_CONTROL_PAGE,
 				Description: "Configuration and track log",
 			},
 		},

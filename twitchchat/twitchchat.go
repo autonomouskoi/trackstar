@@ -44,8 +44,13 @@ func init() {
 				Description: "Help!",
 			},
 			{
-				Path:        "/m/trackstartwitchchat/",
+				Path:        "/m/trackstartwitchchat/embed_ctrl.js",
 				Type:        modules.ManifestWebPathType_MANIFEST_WEB_PATH_TYPE_EMBED_CONTROL,
+				Description: "Configuration",
+			},
+			{
+				Path:        "/m/trackstartwitchchat/index.html",
+				Type:        modules.ManifestWebPathType_MANIFEST_WEB_PATH_TYPE_CONTROL_PAGE,
 				Description: "Configuration",
 			},
 		},

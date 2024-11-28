@@ -6,8 +6,6 @@ import * as overlaypb from "/m/trackstaroverlay/pb/overlay_pb.js";
 const TOPIC_REQUEST = enumName(overlaypb.BusTopic, overlaypb.BusTopic.TRACKSTAR_OVERLAY_REQUEST);
 
 function start(mainContainer: HTMLElement) {
-    document.querySelector("title").innerText = 'Trackstar Overlay Customization';
-
     mainContainer.innerHTML = `
 <h1>Trackstar Overlay Custom CSS</h1>
 <textarea id="custom-css"

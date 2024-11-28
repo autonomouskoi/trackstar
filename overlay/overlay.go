@@ -44,8 +44,13 @@ func init() {
 				Description: "OBS Overlay",
 			},
 			{
-				Path:        "/m/trackstaroverlay/ui.html",
+				Path:        "/m/trackstaroverlay/embed_ctrl.js",
 				Type:        modules.ManifestWebPathType_MANIFEST_WEB_PATH_TYPE_EMBED_CONTROL,
+				Description: "Overlay Customization",
+			},
+			{
+				Path:        "/m/trackstaroverlay/ui.html",
+				Type:        modules.ManifestWebPathType_MANIFEST_WEB_PATH_TYPE_CONTROL_PAGE,
 				Description: "Overlay Customization",
 			},
 		},

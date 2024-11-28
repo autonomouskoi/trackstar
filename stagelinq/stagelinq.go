@@ -54,9 +54,14 @@ func init() {
 				Description: "Help!",
 			},
 			{
-				Path:        "/m/trackstarstagelinq/",
+				Path:        "/m/trackstarstagelinq/embed_ctrl.js",
 				Description: "Stagelinq Controls",
 				Type:        modules.ManifestWebPathType_MANIFEST_WEB_PATH_TYPE_EMBED_CONTROL,
+			},
+			{
+				Path:        "/m/trackstarstagelinq/index.html",
+				Description: "Stagelinq Controls",
+				Type:        modules.ManifestWebPathType_MANIFEST_WEB_PATH_TYPE_CONTROL_PAGE,
 			},
 		},
 	}

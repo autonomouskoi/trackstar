@@ -32,7 +32,7 @@ const (
 	appVersion = "0.0.1"
 	timeout    = time.Second * 5
 
-	EnvLocalContentPath = "AK_TRACKSTAR_STAGELINQ_CONTENT"
+	EnvLocalContentPath = "AK_CONTENT_TRACKSTAR_STAGELINQ"
 )
 
 //go:embed web.zip

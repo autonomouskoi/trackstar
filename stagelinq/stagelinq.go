@@ -6,12 +6,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
-	"runtime/debug"
 	"slices"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/icedream/go-stagelinq"
@@ -146,9 +143,9 @@ type deckState struct {
 
 type StagelinQ struct {
 	http.Handler
+	modutil.ModuleBase
 	bus        *bus.Bus
 	cancel     func()
-	log        *slog.Logger
 	listener   *stagelinq.Listener
 	discovered *discovered
 	deckStates map[string]*deckState
@@ -157,7 +154,7 @@ type StagelinQ struct {
 }
 
 func (sl *StagelinQ) Start(ctx context.Context, deps *modutil.ModuleDeps) error {
-	sl.log = deps.Log.With("module", "trackstar/stagelinq")
+	sl.Log = deps.Log.With("module", "trackstar/stagelinq")
 	sl.bus = deps.Bus
 	sl.discovered = &discovered{}
 	sl.deckStates = map[string]*deckState{}
@@ -191,45 +188,41 @@ func (sl *StagelinQ) Start(ctx context.Context, deps *modutil.ModuleDeps) error 
 	}
 	defer sl.listener.Close()
 	sl.listener.AnnounceEvery(time.Second)
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
+	sl.Go(func() error {
+		defer sl.Log.Debug("exiting", "loop", "discover")
 		for {
 			if err := ctx.Err(); err != nil {
-				break
+				return err
 			}
 			sl.discover(ctx)
 		}
-		wg.Done()
-		sl.log.Debug("exiting", "loop", "discover")
-	}()
-	wg.Add(1)
-	go func() {
+	})
+	sl.Go(func() error {
 		sl.handleRequests(ctx)
-		wg.Done()
-		sl.log.Debug("exiting", "loop", "handleRequests")
-	}()
-	wg.Wait()
+		sl.Log.Debug("exiting", "loop", "handleRequests")
+		return nil
+	})
+	sl.Wait()
 	return ctx.Err()
 }
 
 func (sl *StagelinQ) writeCfg() {
 	if err := sl.kv.SetProto(cfgKVKey, sl.cfg); err != nil {
-		sl.log.Error("writing config", "error", err.Error())
+		sl.Log.Error("writing config", "error", err.Error())
 	}
 }
 
 func (sl *StagelinQ) discover(ctx context.Context) {
 	device, deviceState, err := sl.listener.Discover(timeout)
 	if err != nil {
-		sl.log.Error("discovering devices", "error", err.Error())
+		sl.Log.Error("discovering devices", "error", err.Error())
 		return
 	}
 	if device == nil {
 		return
 	}
 	if deviceState != stagelinq.DevicePresent {
-		sl.log.Debug("discovered non-present device", "state", deviceState, "address", device.IP)
+		sl.Log.Debug("discovered non-present device", "state", deviceState, "address", device.IP)
 		return
 	}
 	if !supportedDeviceNames.Has(device.Name) {
@@ -241,33 +234,20 @@ func (sl *StagelinQ) discover(ctx context.Context) {
 	if sl.discovered.haveFound(device) {
 		return
 	}
-	osl := *sl
-	osl.log = sl.log.With(
-		"ip", device.IP,
-		"device_name", device.Name,
-		"software_name", device.SoftwareName,
-		"software_version", device.SoftwareVersion,
-	)
-	go func() {
-		defer func() {
-			if v := recover(); v != nil {
-				stack := debug.Stack()
-				osl.log.Error("panic", "v", v, "trace", string(stack))
-				sl.cancel()
-			}
-		}()
+	sl.Go(func() error {
 		for ctx.Err() == nil {
-			if err := osl.handleDevice(ctx, device); err != nil {
-				osl.log.Error("handling device", "error", err.Error())
+			if err := sl.handleDevice(ctx, device); err != nil {
+				sl.Log.Error("handling device", "error", err.Error())
 				time.Sleep(time.Second * 5) // wait 5 seconds before trying again
 			}
 		}
-	}()
+		return nil
+	})
 }
 
 func (sl *StagelinQ) handleDevice(ctx context.Context, device *stagelinq.Device) error {
 	token := sl.listener.Token()
-	sl.log.Debug("handling device", "token", hex.EncodeToString(token[:]))
+	sl.Log.Debug("handling device", "token", hex.EncodeToString(token[:]))
 	deviceConn, err := device.Connect(token, []*stagelinq.Service{})
 	if err != nil {
 		return fmt.Errorf("connecting to device: %w", err)
@@ -277,7 +257,7 @@ func (sl *StagelinQ) handleDevice(ctx context.Context, device *stagelinq.Device)
 	retryDelay := time.Millisecond * 50
 	var services []*stagelinq.Service
 	for i := 0; i < 6; i++ {
-		sl.log.Debug("requesting data services", "ip", device.IP)
+		sl.Log.Debug("requesting data services", "ip", device.IP)
 		services, err = deviceConn.RequestServices()
 		if err != nil {
 			return fmt.Errorf("requesting services: %w", err)
@@ -296,7 +276,7 @@ func (sl *StagelinQ) handleDevice(ctx context.Context, device *stagelinq.Device)
 	sl.handleGetDevices(nil)
 
 	for _, service := range services {
-		sl.log.Debug("service offer",
+		sl.Log.Debug("service offer",
 			"name", service.Name,
 			"port", service.Port,
 		)
@@ -310,11 +290,11 @@ func (sl *StagelinQ) handleDevice(ctx context.Context, device *stagelinq.Device)
 		}
 		for ctx.Err() == nil {
 			if err := sl.handleStateMap(ctx, smh); err != nil {
-				sl.log.Error("handling StateMap", "err", err.Error())
+				sl.Log.Error("handling StateMap", "err", err.Error())
 			}
 		}
 	}
-	sl.log.Debug("finished device")
+	sl.Log.Debug("finished device")
 
 	return nil
 }
@@ -326,7 +306,7 @@ type stateMapHandler struct {
 }
 
 func (sl *StagelinQ) handleStateMap(ctx context.Context, smh stateMapHandler) error {
-	sl.log.Debug("handling state map")
+	sl.Log.Debug("handling state map")
 	stateMapTCPConn, err := smh.device.Dial(smh.service.Port)
 	if err != nil {
 		return fmt.Errorf("creating stateMapTCPConn: %w", err)
@@ -365,12 +345,12 @@ func (sl *StagelinQ) handleState(device *stagelinq.Device, state *stagelinq.Stat
 	deckID := device.IP.String() + "/" + nameFields[2]
 	ds, present := sl.deckStates[deckID]
 	if !present {
-		sl.log.Debug("new deck", "deckID", deckID)
+		sl.Log.Debug("new deck", "deckID", deckID)
 		b, err := proto.Marshal(&trackstar.DeckDiscovered{
 			DeckId: deckID,
 		})
 		if err != nil {
-			sl.log.Error("marshalling DeckDiscovered proto", "error", err.Error())
+			sl.Log.Error("marshalling DeckDiscovered proto", "error", err.Error())
 			return
 		}
 		sl.bus.Send(&bus.BusMessage{
@@ -437,6 +417,7 @@ func (sl *StagelinQ) maybeNotify(ds *deckState) {
 		return
 	}
 	if ds.upfader <= sl.cfg.FaderThreshold && sl.cfg.FaderThreshold != 0 {
+		sl.Log.Debug("track below threshold", "fader", ds.upfader, "threshold", sl.cfg.FaderThreshold)
 		return
 	}
 
@@ -447,10 +428,10 @@ func (sl *StagelinQ) maybeNotify(ds *deckState) {
 			When:   time.Now().Unix(),
 		}})
 	if err != nil {
-		sl.log.Error("marshalling Track proto", "error", err.Error())
+		sl.Log.Error("marshalling Track proto", "error", err.Error())
 		return
 	}
-	sl.log.Debug("sending track", "track", ds.track)
+	sl.Log.Debug("sending track", "track", ds.track)
 	sl.bus.Send(&bus.BusMessage{
 		Topic:   trackstar.BusTopic_TRACKSTAR_REQUEST.String(),
 		Type:    int32(trackstar.MessageTypeRequest_SUBMIT_TRACK_REQ),
@@ -477,6 +458,7 @@ func (sl *StagelinQ) handleRequests(ctx context.Context) {
 				}
 			}
 			sl.cfg.FaderThreshold = highest
+			sl.Log.Debug("setting threshold", "threshold", highest)
 			sl.writeCfg()
 			sl.sendThreshold()
 		case int32(MessageType_TYPE_GET_THRESHOLD_REQUEST):
@@ -492,7 +474,7 @@ func (sl *StagelinQ) sendThreshold() {
 		FaderThreshold: sl.cfg.FaderThreshold,
 	})
 	if err != nil {
-		sl.log.Error("marshalling CaptureThresholdResponse", "error", err.Error())
+		sl.Log.Error("marshalling CaptureThresholdResponse", "error", err.Error())
 		return
 	}
 	sl.bus.Send(&bus.BusMessage{
@@ -521,7 +503,7 @@ func (sl *StagelinQ) handleGetDevices(msg *bus.BusMessage) {
 			Devices: devices,
 		})
 		if err != nil {
-			sl.log.Error("marshalling GetDevicesResponse", "error", err.Error())
+			sl.Log.Error("marshalling GetDevicesResponse", "error", err.Error())
 			return
 		}
 		reply := &bus.BusMessage{

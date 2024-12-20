@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/autonomouskoi/akcore"
@@ -88,11 +87,10 @@ func (ts *Trackstar) Start(ctx context.Context, deps *modutil.ModuleDeps) error 
 	}
 	ts.Handler = http.StripPrefix("/m/trackstar", http.FileServer(fs))
 
-	eg := errgroup.Group{}
-	eg.Go(func() error { return ts.handleRequests(ctx) })
-	eg.Go(func() error { return ts.handleCommands(ctx) })
+	ts.Go(func() error { return ts.handleRequests(ctx) })
+	ts.Go(func() error { return ts.handleCommands(ctx) })
 
-	return eg.Wait()
+	return ts.Wait()
 }
 
 func (ts *Trackstar) handleRequests(ctx context.Context) error {

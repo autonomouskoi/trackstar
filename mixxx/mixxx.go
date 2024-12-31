@@ -6,8 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -101,7 +99,7 @@ func (m *Mixxx) Start(ctx context.Context, deps *modutil.ModuleDeps) error {
 
 func (m *Mixxx) getLatest(ctx context.Context) (int, error) {
 	v := struct {
-		ID int `db:"id"`
+		ID int `db:"track_id"`
 	}{}
 	err := m.db.GetContext(ctx, &v, `
 SELECT track_id
@@ -138,12 +136,4 @@ SELECT artist, title
 		Artist: t.Artist.String,
 		Title:  t.Title.String,
 	}, nil
-}
-
-func getDBPath() (string, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("getting user homedir: %w", err)
-	}
-	return filepath.Join(homeDir, "Library", "Containers", "org.mixxx.mixxx", "Data", "Library", "Application Support", "Mixxx", "mixxxdb.sqlite"), nil
 }

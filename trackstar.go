@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	EnvLocalContentPath = "AK_TRACKSTAR_CONTENT"
+	EnvLocalContentPath = "AK_CONTENT_TRACKSTAR"
 )
 
 var (

@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	EnvLocalContentPath = "AK_TRACKSTAR_TWITCHCHAT_CONTENT"
+	EnvLocalContentPath = "AK_CONTENT_TRACKSTAR_TWITCHCHAT"
 )
 
 var (

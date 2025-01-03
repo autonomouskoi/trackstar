@@ -197,7 +197,9 @@ func (sl *StagelinQ) start(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 		case <-time.After(time.Second * 15):
-			cancel()
+			if len(sl.deckStates) == 0 {
+				cancel()
+			}
 		}
 	}()
 

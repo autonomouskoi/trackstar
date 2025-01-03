@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/icedream/go-stagelinq"
+	"golang.org/x/exp/maps"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/autonomouskoi/akcore"
@@ -144,20 +145,19 @@ type deckState struct {
 type StagelinQ struct {
 	http.Handler
 	modutil.ModuleBase
-	bus            *bus.Bus
-	cancel         func()
-	listener       *stagelinq.Listener
-	discovered     *discovered
-	deckStates     map[string]*deckState
-	cfg            *Config
-	kv             kv.KVPrefix
-	startedConnect time.Time
+	bus        *bus.Bus
+	listener   *stagelinq.Listener
+	discovered *discovered
+	deckStates map[string]*deckState
+	cfg        *Config
+	kv         kv.KVPrefix
 }
 
 func (sl *StagelinQ) Start(ctx context.Context, deps *modutil.ModuleDeps) error {
 	sl.Log = deps.Log.With("module", "trackstar/stagelinq")
 	sl.bus = deps.Bus
 	sl.kv = deps.KV
+	sl.deckStates = map[string]*deckState{}
 
 	sl.cfg = &Config{}
 
@@ -174,7 +174,6 @@ func (sl *StagelinQ) Start(ctx context.Context, deps *modutil.ModuleDeps) error 
 
 	for {
 		sl.Log.Debug("starting device search")
-		sl.startedConnect = time.Now()
 		if err := sl.start(ctx); err != nil {
 			sl.Log.Error("searching for devices", "error", err.Error())
 		}
@@ -190,9 +189,17 @@ func (sl *StagelinQ) Start(ctx context.Context, deps *modutil.ModuleDeps) error 
 func (sl *StagelinQ) start(ctx context.Context) error {
 	var err error
 	sl.discovered = &discovered{}
-	sl.deckStates = map[string]*deckState{}
-	ctx, sl.cancel = context.WithCancel(ctx)
-	defer sl.cancel()
+	maps.Clear(sl.deckStates)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	go func() {
+		select {
+		case <-ctx.Done():
+		case <-time.After(time.Second * 15):
+			cancel()
+		}
+	}()
 
 	sl.listener, err = stagelinq.ListenWithConfiguration(&stagelinq.ListenerConfiguration{
 		//Context:          ctx,
@@ -253,10 +260,6 @@ func (sl *StagelinQ) discover(ctx context.Context) {
 	}
 	sl.Go(func() error {
 		for ctx.Err() == nil {
-			if time.Since(sl.startedConnect) > time.Second*15 {
-				sl.cancel()
-				return errors.New("giving up")
-			}
 			if err := sl.handleDevice(ctx, device); err != nil {
 				sl.Log.Error("handling device", "error", err.Error())
 				time.Sleep(time.Second * 5) // wait 5 seconds before trying again

@@ -26,7 +26,7 @@ import (
 
 const (
 	appName    = "aktrackstarstagelinq"
-	appVersion = "0.0.1"
+	appVersion = "0.0.13"
 	timeout    = time.Second * 5
 
 	EnvLocalContentPath = "AK_CONTENT_TRACKSTAR_STAGELINQ"
@@ -144,20 +144,19 @@ type deckState struct {
 type StagelinQ struct {
 	http.Handler
 	modutil.ModuleBase
-	bus        *bus.Bus
-	cancel     func()
-	listener   *stagelinq.Listener
-	discovered *discovered
-	deckStates map[string]*deckState
-	cfg        *Config
-	kv         kv.KVPrefix
+	bus            *bus.Bus
+	cancel         func()
+	listener       *stagelinq.Listener
+	discovered     *discovered
+	deckStates     map[string]*deckState
+	cfg            *Config
+	kv             kv.KVPrefix
+	startedConnect time.Time
 }
 
 func (sl *StagelinQ) Start(ctx context.Context, deps *modutil.ModuleDeps) error {
 	sl.Log = deps.Log.With("module", "trackstar/stagelinq")
 	sl.bus = deps.Bus
-	sl.discovered = &discovered{}
-	sl.deckStates = map[string]*deckState{}
 	sl.kv = deps.KV
 
 	sl.cfg = &Config{}
@@ -173,6 +172,25 @@ func (sl *StagelinQ) Start(ctx context.Context, deps *modutil.ModuleDeps) error 
 	}
 	sl.Handler = http.StripPrefix("/m/trackstarstagelinq", http.FileServer(fs))
 
+	for {
+		sl.Log.Debug("starting device search")
+		sl.startedConnect = time.Now()
+		if err := sl.start(ctx); err != nil {
+			sl.Log.Error("searching for devices", "error", err.Error())
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(time.Second * 15):
+			// try again
+		}
+	}
+}
+
+func (sl *StagelinQ) start(ctx context.Context) error {
+	var err error
+	sl.discovered = &discovered{}
+	sl.deckStates = map[string]*deckState{}
 	ctx, sl.cancel = context.WithCancel(ctx)
 	defer sl.cancel()
 
@@ -181,7 +199,7 @@ func (sl *StagelinQ) Start(ctx context.Context, deps *modutil.ModuleDeps) error 
 		DiscoveryTimeout: timeout,
 		SoftwareName:     appName,
 		SoftwareVersion:  appVersion,
-		Name:             "boop",
+		Name:             "AutonomousKoi",
 	})
 	if err != nil {
 		return fmt.Errorf("listening for StagelinQ devices: %w", err)
@@ -202,8 +220,7 @@ func (sl *StagelinQ) Start(ctx context.Context, deps *modutil.ModuleDeps) error 
 		sl.Log.Debug("exiting", "loop", "handleRequests")
 		return nil
 	})
-	sl.Wait()
-	return ctx.Err()
+	return sl.Wait()
 }
 
 func (sl *StagelinQ) writeCfg() {
@@ -236,6 +253,10 @@ func (sl *StagelinQ) discover(ctx context.Context) {
 	}
 	sl.Go(func() error {
 		for ctx.Err() == nil {
+			if time.Since(sl.startedConnect) > time.Second*15 {
+				sl.cancel()
+				return errors.New("giving up")
+			}
 			if err := sl.handleDevice(ctx, device); err != nil {
 				sl.Log.Error("handling device", "error", err.Error())
 				time.Sleep(time.Second * 5) // wait 5 seconds before trying again

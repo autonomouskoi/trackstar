@@ -4,8 +4,8 @@ go 1.22.1
 
 require (
 	github.com/autonomouskoi/akcore v0.0.13
-	github.com/autonomouskoi/datastruct v0.0.0-20241128030344-91fb33460053
-	github.com/autonomouskoi/mageutil v0.0.0-20241220224237-3a865d8830c9
+	github.com/autonomouskoi/datastruct v0.0.13
+	github.com/autonomouskoi/mageutil v0.0.14
 	github.com/autonomouskoi/twitch v0.0.13
 	github.com/icedream/go-stagelinq v1.0.0
 	github.com/jmoiron/sqlx v1.4.0

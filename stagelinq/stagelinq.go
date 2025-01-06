@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/icedream/go-stagelinq"
+	"golang.org/x/exp/maps"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/autonomouskoi/akcore"
@@ -26,7 +27,7 @@ import (
 
 const (
 	appName    = "aktrackstarstagelinq"
-	appVersion = "0.0.1"
+	appVersion = "0.0.13"
 	timeout    = time.Second * 5
 
 	EnvLocalContentPath = "AK_CONTENT_TRACKSTAR_STAGELINQ"
@@ -145,7 +146,6 @@ type StagelinQ struct {
 	http.Handler
 	modutil.ModuleBase
 	bus        *bus.Bus
-	cancel     func()
 	listener   *stagelinq.Listener
 	discovered *discovered
 	deckStates map[string]*deckState
@@ -156,9 +156,8 @@ type StagelinQ struct {
 func (sl *StagelinQ) Start(ctx context.Context, deps *modutil.ModuleDeps) error {
 	sl.Log = deps.Log.With("module", "trackstar/stagelinq")
 	sl.bus = deps.Bus
-	sl.discovered = &discovered{}
-	sl.deckStates = map[string]*deckState{}
 	sl.kv = deps.KV
+	sl.deckStates = map[string]*deckState{}
 
 	sl.cfg = &Config{}
 
@@ -173,15 +172,46 @@ func (sl *StagelinQ) Start(ctx context.Context, deps *modutil.ModuleDeps) error 
 	}
 	sl.Handler = http.StripPrefix("/m/trackstarstagelinq", http.FileServer(fs))
 
-	ctx, sl.cancel = context.WithCancel(ctx)
-	defer sl.cancel()
+	for {
+		sl.Log.Debug("starting device search")
+		if err := sl.start(ctx); err != nil {
+			sl.Log.Error("searching for devices", "error", err.Error())
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(time.Second * 15):
+			// try again
+		}
+	}
+}
+
+func (sl *StagelinQ) start(ctx context.Context) error {
+	var err error
+	sl.discovered = &discovered{}
+	maps.Clear(sl.deckStates)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(time.Second * 15):
+				if len(sl.deckStates) == 0 {
+					cancel()
+				}
+			}
+		}
+	}()
 
 	sl.listener, err = stagelinq.ListenWithConfiguration(&stagelinq.ListenerConfiguration{
 		//Context:          ctx,
 		DiscoveryTimeout: timeout,
 		SoftwareName:     appName,
 		SoftwareVersion:  appVersion,
-		Name:             "boop",
+		Name:             "AutonomousKoi",
 	})
 	if err != nil {
 		return fmt.Errorf("listening for StagelinQ devices: %w", err)
@@ -202,8 +232,7 @@ func (sl *StagelinQ) Start(ctx context.Context, deps *modutil.ModuleDeps) error 
 		sl.Log.Debug("exiting", "loop", "handleRequests")
 		return nil
 	})
-	sl.Wait()
-	return ctx.Err()
+	return sl.Wait()
 }
 
 func (sl *StagelinQ) writeCfg() {
@@ -235,11 +264,8 @@ func (sl *StagelinQ) discover(ctx context.Context) {
 		return
 	}
 	sl.Go(func() error {
-		for ctx.Err() == nil {
-			if err := sl.handleDevice(ctx, device); err != nil {
-				sl.Log.Error("handling device", "error", err.Error())
-				time.Sleep(time.Second * 5) // wait 5 seconds before trying again
-			}
+		if err := sl.handleDevice(ctx, device); err != nil {
+			sl.Log.Error("handling device", "error", err.Error())
 		}
 		return nil
 	})
@@ -288,10 +314,8 @@ func (sl *StagelinQ) handleDevice(ctx context.Context, device *stagelinq.Device)
 			service: service,
 			token:   token,
 		}
-		for ctx.Err() == nil {
-			if err := sl.handleStateMap(ctx, smh); err != nil {
-				sl.Log.Error("handling StateMap", "err", err.Error())
-			}
+		if err := sl.handleStateMap(ctx, smh); err != nil {
+			sl.Log.Error("handling StateMap", "err", err.Error())
 		}
 	}
 	sl.Log.Debug("finished device")
@@ -307,6 +331,7 @@ type stateMapHandler struct {
 
 func (sl *StagelinQ) handleStateMap(ctx context.Context, smh stateMapHandler) error {
 	sl.Log.Debug("handling state map")
+	defer maps.Clear(sl.deckStates)
 	stateMapTCPConn, err := smh.device.Dial(smh.service.Port)
 	if err != nil {
 		return fmt.Errorf("creating stateMapTCPConn: %w", err)

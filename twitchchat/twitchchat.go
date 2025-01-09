@@ -1,6 +1,7 @@
 package twitchchat
 
 import (
+	"bytes"
 	"context"
 	_ "embed"
 	"errors"
@@ -9,9 +10,11 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"text/template"
 	"time"
 
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/autonomouskoi/akcore"
 	"github.com/autonomouskoi/akcore/bus"
@@ -25,6 +28,8 @@ import (
 
 const (
 	EnvLocalContentPath = "AK_CONTENT_TRACKSTAR_TWITCHCHAT"
+
+	defaultTemplate = `{{ .TrackUpdate.Track.Artist }} - {{ .TrackUpdate.Track.Title }}`
 )
 
 var (
@@ -68,6 +73,7 @@ type TwitchChat struct {
 	Log  *slog.Logger
 	cfg  *Config
 	kv   *kv.KVPrefix
+	tmpl *template.Template
 }
 
 func (tc *TwitchChat) Start(ctx context.Context, deps *modutil.ModuleDeps) error {
@@ -83,6 +89,13 @@ func (tc *TwitchChat) Start(ctx context.Context, deps *modutil.ModuleDeps) error
 	tc.cfg = &Config{}
 	if err := tc.kv.GetProto(cfgKVKey, tc.cfg); err != nil && !errors.Is(err, akcore.ErrNotFound) {
 		return fmt.Errorf("retrieving config: %w", err)
+	}
+	if tc.cfg.Template == "" {
+		tc.cfg.Template = defaultTemplate
+	}
+	if tc.tmpl, err = template.New("").Parse(tc.cfg.GetTemplate()); err != nil {
+		tc.Log.Error("parsing template", "error", err.Error())
+		tc.tmpl, _ = template.New("").Parse(defaultTemplate)
 	}
 	defer tc.writeCfg()
 
@@ -113,8 +126,20 @@ func (tc *TwitchChat) handleCommandConfigSet(msg *bus.BusMessage) *bus.BusMessag
 	if reply.Error = tc.UnmarshalMessage(msg, csr); reply.Error != nil {
 		return reply
 	}
+
+	tmpl, err := template.New("").Parse(csr.Config.GetTemplate())
+	if err != nil {
+		reply.Error = &bus.Error{
+			Code:   int32(bus.CommonErrorCode_INVALID_TYPE),
+			Detail: proto.String("parsing template: " + err.Error()),
+		}
+		tc.Log.Error("parsing template", "error", err.Error())
+		return reply
+	}
+
 	tc.lock.Lock()
 	tc.cfg = csr.Config
+	tc.tmpl = tmpl
 	tc.lock.Unlock()
 	tc.writeCfg()
 
@@ -232,8 +257,16 @@ func (tc *TwitchChat) sendTrackUpdate(tu *trackstar.TrackUpdate) {
 		Topic: twitch.BusTopics_TWITCH_CHAT_REQUEST.String(),
 		Type:  int32(twitch.MessageTypeTwitchChatRequest_TWITCH_CHAT_REQUEST_TYPE_SEND_REQ),
 	}
+	buf := &bytes.Buffer{}
+	err := tc.tmpl.Execute(buf, map[string]any{
+		"TrackUpdate": tu,
+	})
+	if err != nil {
+		tc.Log.Error("executing template", "error", err.Error())
+		return
+	}
 	tc.MarshalMessage(msg, &twitch.TwitchChatRequestSendRequest{
-		Text: fmt.Sprintf("%s - %s", tu.Track.Artist, tu.Track.Title),
+		Text: buf.String(),
 	})
 	if msg.Error != nil {
 		return

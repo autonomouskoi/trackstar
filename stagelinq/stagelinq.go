@@ -367,7 +367,8 @@ func (sl *StagelinQ) handleState(device *stagelinq.Device, state *stagelinq.Stat
 	if len(nameFields) < 3 {
 		return
 	}
-	deckID := device.IP.String() + "/" + nameFields[2]
+	//deckID := device.IP.String() + "/" + nameFields[2]
+	deckID := nameFields[2]
 	ds, present := sl.deckStates[deckID]
 	if !present {
 		sl.Log.Debug("new deck", "deckID", deckID)

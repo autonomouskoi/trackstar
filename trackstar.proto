@@ -9,11 +9,18 @@ enum BusTopic {
     TRACKSTAR_COMMAND = 2;
 }
 
+message TrackTagConfig {
+    string  tag      = 1;
+    string  command  = 2;
+    string  response = 3;
+}
+
 message Config {
-    uint32              demo_delay_seconds   = 1;
-    bool                clear_bracketed_text = 2;
-    uint32              track_delay_seconds  = 3;
-    map<string, Track>  track_replacements   = 4;
+              uint32              demo_delay_seconds   = 1;
+              bool                clear_bracketed_text = 2;
+              uint32              track_delay_seconds  = 3;
+              map<string, Track>  track_replacements   = 4;
+    repeated  TrackTagConfig      tags                 = 5;
 }
 
 enum MessageTypeEvent {
@@ -21,22 +28,38 @@ enum MessageTypeEvent {
     TRACKSTAR_EVENT_DECK_DISCOVERED   = 1;
     TRACKSTAR_EVENT_TRACK_UPDATE      = 2;
     TRACKSTAR_EVENT_DECK_STYLE_UPDATE = 3;
+    TRACKSTAR_EVENT_TRACKLOG_UPDATE   = 4;
 }
 
 message DeckDiscovered {
     string  deck_id = 1;
 }
 
+message TrackUpdateTag {
+    int64   when       = 1;
+    string  from_id    = 2;
+    string  from_login = 3;
+    string  tag        = 4;
+}
+
 message TrackUpdate {
-    string  deck_id = 1;
-    Track   track   = 2;
-    int64   when    = 3; 
+              string          deck_id = 1;
+              Track           track   = 2;
+              int64           when    = 3; 
+    repeated  TrackUpdateTag  tags    = 4;
 }
 
 message Track {
     string  artist = 1;
     string  title  = 2;
 }
+
+message Session {
+              int64        started = 1;
+    repeated  TrackUpdate  tracks  = 2;
+}
+
+message TracklogUpdateEvent {}
 
 enum MessageTypeRequest {
     TRACKSTAR_REQUEST_GET_TRACK_REQ  = 0;
@@ -47,6 +70,8 @@ enum MessageTypeRequest {
     CONFIG_GET_RESP                  = 5;
     GET_ALL_TRACKS_REQ               = 6;
     GET_ALL_TRACKS_RESP              = 7;
+    TAG_TRACK_REQ                    = 8;
+    TAG_TRACK_RESP                   = 9;
 }
 
 message GetTrackRequest {
@@ -65,6 +90,11 @@ message SubmitTrackRequest {
     TrackUpdate  track_update = 1;
 }
 message SubmitTrackResponse {}
+
+message TagTrackRequest {
+    TrackUpdateTag  tag = 1;
+}
+message TagTrackResponse {}
 
 message ConfigGetRequest {}
 message ConfigGetResponse {

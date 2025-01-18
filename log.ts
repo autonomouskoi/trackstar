@@ -13,6 +13,8 @@ interface entry {
     when: Date;
     artist: string;
     title: string;
+    deck: string;
+    tags: string;
 }
 
 //let entries: entry[] = new Array();
@@ -89,6 +91,8 @@ td {
         <th>Time</th>
         <th>Artist</th>
         <th>Title</th>
+        <th>Deck</th>
+        <th>Tags</th>
     </tr>
 </table>
 </fieldset>
@@ -121,19 +125,27 @@ td {
             when: new Date(Number(tu.when) * 1000),
             artist: tu.track.artist,
             title: tu.track.title,
+            deck: tu.deckId,
+            tags: tu.tags.map((tag) => tag.tag).join(','),
         }
         this._entries.push(newEntry);
-        let when = document.createElement("td");
+        let when = document.createElement('td');
         when.innerText = newEntry.when.toLocaleTimeString();
-        let artist = document.createElement("td");
+        let artist = document.createElement('td');
         artist.innerText = newEntry.artist;
-        let title = document.createElement("td");
+        let title = document.createElement('td');
         title.innerText = newEntry.title;
+        let deck = document.createElement('td');
+        deck.innerText = newEntry.deck;
+        let tags = document.createElement('td');
+        tags.innerText = newEntry.tags;
 
         let row = document.createElement('tr') as HTMLTableRowElement;
         row.appendChild(when);
         row.appendChild(artist);
         row.appendChild(title);
+        row.appendChild(deck);
+        row.appendChild(tags);
         this._table.appendChild(row);
     }
 
@@ -147,7 +159,7 @@ td {
 
     private _onDownload() {
         let data = this._entries.map(entry => {
-            return `${JSON.stringify(entry.when)},${JSON.stringify(entry.artist)},${JSON.stringify(entry.title)}`
+            return `${JSON.stringify(entry.when)},${JSON.stringify(entry.artist)},${JSON.stringify(entry.title)},${JSON.stringify(entry.deck)},${JSON.stringify(entry.tags)}`
         }).join('\n');
         let file = new File([data], 'trackstar.csv', {
             type: 'text/csv',

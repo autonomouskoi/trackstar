@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -19,10 +20,13 @@ import (
 	"github.com/autonomouskoi/akcore/modules/modutil"
 	"github.com/autonomouskoi/akcore/storage/kv"
 	"github.com/autonomouskoi/akcore/web/webutil"
+	"github.com/autonomouskoi/datastruct/mapset"
 )
 
 const (
 	EnvLocalContentPath = "AK_CONTENT_TRACKSTAR"
+
+	moduleID = "d6f95efeb3138d6e"
 )
 
 var (
@@ -31,7 +35,7 @@ var (
 
 func init() {
 	manifest := &modules.Manifest{
-		Id:          "d6f95efeb3138d6e",
+		Id:          moduleID,
 		Name:        "trackstar",
 		Description: "Track songs played during your session",
 		WebPaths: []*modules.ManifestWebPath{
@@ -89,6 +93,7 @@ func (ts *Trackstar) Start(ctx context.Context, deps *modutil.ModuleDeps) error 
 
 	ts.Go(func() error { return ts.handleRequests(ctx) })
 	ts.Go(func() error { return ts.handleCommands(ctx) })
+	ts.Go(func() error { return ts.handleDirect(ctx) })
 
 	return ts.Wait()
 }
@@ -100,6 +105,7 @@ func (ts *Trackstar) handleRequests(ctx context.Context) error {
 			int32(MessageTypeRequest_SUBMIT_TRACK_REQ):                ts.handleRequestSubmitTrack,
 			int32(MessageTypeRequest_CONFIG_GET_REQ):                  ts.handleRequestConfigGet,
 			int32(MessageTypeRequest_GET_ALL_TRACKS_REQ):              ts.handleRequestGetAllTracks,
+			int32(MessageTypeRequest_TAG_TRACK_REQ):                   ts.handleRequestTagTrack,
 		},
 		nil,
 	)
@@ -221,6 +227,36 @@ func (ts *Trackstar) handleRequestGetAllTracks(msg *bus.BusMessage) *bus.BusMess
 	return reply
 }
 
+func (ts *Trackstar) handleRequestTagTrack(msg *bus.BusMessage) *bus.BusMessage {
+	reply := &bus.BusMessage{
+		Topic: msg.GetTopic(),
+		Type:  msg.Type + 1,
+	}
+	ts.lock.Lock()
+	defer ts.lock.Unlock()
+	if len(ts.updates) == 0 {
+		reply.Error = &bus.Error{Code: int32(bus.CommonErrorCode_NOT_FOUND)}
+		return reply
+	}
+	ttr := &TagTrackRequest{}
+	if reply.Error = ts.UnmarshalMessage(msg, ttr); reply.Error != nil {
+		return reply
+	}
+	if !slices.ContainsFunc(ts.cfg.Tags, func(t *TrackTagConfig) bool { return t.Tag == ttr.Tag.GetTag() }) {
+		reply.Error = &bus.Error{Code: int32(bus.CommonErrorCode_NOT_FOUND)}
+		return reply
+	}
+	current := ts.updates[len(ts.updates)-1]
+	current.Tags = append(current.Tags, ttr.GetTag())
+	eventMsg := &bus.BusMessage{
+		Topic: BusTopic_TRACKSTAR_EVENT.String(),
+		Type:  int32(MessageTypeEvent_TRACKSTAR_EVENT_TRACKLOG_UPDATE),
+	}
+	reply.Error = ts.UnmarshalMessage(eventMsg, &TracklogUpdateEvent{})
+	ts.bus.Send(eventMsg)
+	return reply
+}
+
 func (ts *Trackstar) handleCommands(ctx context.Context) error {
 	ts.bus.HandleTypes(ctx, BusTopic_TRACKSTAR_COMMAND.String(), 4,
 		map[int32]bus.MessageHandler{
@@ -240,8 +276,17 @@ func (ts *Trackstar) handleCommandConfigSet(msg *bus.BusMessage) *bus.BusMessage
 	if reply.Error = ts.UnmarshalMessage(msg, csr); reply.Error != nil {
 		return reply
 	}
+	if err := csr.Config.Validate(); err != nil {
+		reply.Error = &bus.Error{
+			Code:   int32(bus.CommonErrorCode_INVALID_TYPE),
+			Detail: proto.String(err.Error()),
+		}
+		return reply
+	}
+
 	ts.lock.Lock()
 	demoDiffers := csr.GetConfig().GetDemoDelaySeconds() != ts.cfg.GetDemoDelaySeconds()
+
 	ts.cfg = csr.GetConfig()
 	ts.lock.Unlock()
 	ts.writeCfg()
@@ -255,6 +300,20 @@ func (ts *Trackstar) handleCommandConfigSet(msg *bus.BusMessage) *bus.BusMessage
 		ts.demoMode()
 	}
 	return reply
+}
+
+func (cfg *Config) Validate() error {
+	seenTags := mapset.MapSet[string]{}
+	for _, tag := range cfg.Tags {
+		if tag.Tag == "" {
+			return errors.New("tag cannot be empty")
+		}
+		if seenTags.Has(tag.Tag) {
+			return fmt.Errorf("duplicate tag %q", tag.Tag)
+		}
+		seenTags.Add(tag.Tag)
+	}
+	return nil
 }
 
 func (ts *Trackstar) loadConfig() error {

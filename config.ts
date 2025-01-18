@@ -11,12 +11,17 @@ class Config extends GloballyStyledHTMLElement {
 
     private _check_clear_bracketed_text: HTMLInputElement;
     private _dialog_new_replacement: HTMLDialogElement;
+    private _dialog_new_tag: HTMLDialogElement;
     private _div_replacements: HTMLDivElement;
+    private _div_tags: HTMLDivElement;
     private _input_delay_seconds: HTMLInputElement;
     private _input_demo_seconds: HTMLInputElement;
     private _input_replacement_match: HTMLInputElement;
     private _input_replacement_artist: HTMLInputElement;
     private _input_replacement_title: HTMLInputElement;
+    private _input_tag: HTMLInputElement;
+    private _input_tag_command: HTMLInputElement;
+    private _input_tag_response: HTMLInputElement;
 
     save: (config: tspb.Config) => void = () => { };
 
@@ -51,6 +56,7 @@ class Config extends GloballyStyledHTMLElement {
     />
 </div>
 
+<hr>
 <section>
     <h4>Track Replacements <button id="btn-new-replacement"> + </button></h4>
     <div class="grid grid-4-col" id="div-replacements"></div>
@@ -76,6 +82,30 @@ class Config extends GloballyStyledHTMLElement {
 </div>
 </dialog>
 
+<hr>
+<section>
+    <h4>Tags <button id="btn-new-tag"> + </button></h4>
+    <div class="grid grid-4-col" id="div-tags"></div>
+</section>
+<dialog id="dialog-tag-new">
+    <h2>New Tag</h2>
+<div class="grid grid-2-col">
+
+<label for="input-tag">Tag</label>
+<input type="text" id="input-tag" />
+
+<label for="input-tag-command">Command (Optional)</label>
+<input type="text" id="input-tag-command" />
+
+<label for="input-tag-response">Response (Optional)</label>
+<input type="text" id="input-tag-response" />
+
+<button id="btn-tag-save">Save</button>
+<button id="btn-tag-cancel">Cancel</button>
+</div>
+</dialog>
+
+<hr>
 <details>
         <summary>Send Test Track</summary>
 <div class="grid grid-2-col">
@@ -131,10 +161,39 @@ class Config extends GloballyStyledHTMLElement {
             config.trackReplacements[this._input_replacement_match.value] = track;
             this.save(config);
         });
+
+
+        let buttonTagNew = this.shadowRoot.querySelector('#btn-new-tag');
+        let buttonTagSave: HTMLButtonElement = this.shadowRoot.querySelector('#btn-tag-save');
+        let buttonTagCancel = this.shadowRoot.querySelector('#btn-tag-cancel');
+        this._div_tags = this.shadowRoot.querySelector('#div-tags');
+        this._dialog_new_tag = this.shadowRoot.querySelector('#dialog-tag-new');
+        this._input_tag = this.shadowRoot.querySelector('#input-tag');
+        this._input_tag_command = this.shadowRoot.querySelector('#input-tag-command');
+        this._input_tag_response = this.shadowRoot.querySelector('#input-tag-response');
+        buttonTagNew.addEventListener('click', () => {
+            this._input_tag.value = '';
+            this._input_tag_command.value = '';
+            this._input_tag_response.value = '';
+            this._dialog_new_tag.showModal();
+        });
+        buttonTagCancel.addEventListener('click', () => this._dialog_new_tag.close());
+        buttonTagSave.addEventListener('click', () => {
+            let ttc = new tspb.TrackTagConfig({
+                tag: this._input_tag.value,
+                command: this._input_tag_command.value,
+                response: this._input_tag_response.value,
+            });
+            let config = this._config.clone();
+            config.tags = [...config.tags, ttc];
+            this.save(config);
+        });
     }
 
     set config(config: tspb.Config) {
         this._config = config;
+        this._dialog_new_replacement.close();
+        this._dialog_new_tag.close();
         this._check_clear_bracketed_text.checked = config.clearBracketedText;
         this._input_delay_seconds.value = config.trackDelaySeconds.toString();
         this._input_demo_seconds.value = config.demoDelaySeconds.toString();
@@ -170,8 +229,51 @@ class Config extends GloballyStyledHTMLElement {
                 });
                 this._div_replacements.appendChild(deleteButton);
             }
-
         }
+
+        this._div_tags.innerHTML = `
+<div class="column-header">Tag</div>
+<div class="column-header">Command</div>
+<div class="column-header">Response</div>
+<div class="column-header"></div>
+`;
+        this._config.tags.forEach((tag) => {
+            let tagDiv = document.createElement('div');
+            tagDiv.innerText = tag.tag;
+            this._div_tags.appendChild(tagDiv);
+
+            let tagCommand = document.createElement('div');
+            tagCommand.innerHTML = `<code>${tag.command}</code>`;
+            this._div_tags.appendChild(tagCommand);
+
+            let tagResponse = document.createElement('div');
+            tagResponse.innerHTML = `<code>${tag.response}</code>`;
+            this._div_tags.appendChild(tagResponse);
+
+            let buttonsDiv = document.createElement('div');
+
+            let deleteButton: HTMLButtonElement = document.createElement('button');
+            deleteButton.innerText = 'Delete';
+            deleteButton.addEventListener('click', () => {
+                if (window.confirm(`Delete tag ${tag.tag}?`)) {
+                    let config = this._config.clone();
+                    config.tags = config.tags.filter((t) => tag.tag !== t.tag);
+                    this.save(config);
+                }
+            });
+            buttonsDiv.appendChild(deleteButton);
+
+            let applyButton: HTMLButtonElement = document.createElement('button');
+            applyButton.innerText = 'Apply';
+            buttonsDiv.appendChild(applyButton);
+
+            let link: HTMLAnchorElement = document.createElement('a');
+            link.innerHTML = '&#x1F517;';
+            link.href = `/m/d6f95efeb3138d6e/_webhook?action=add_tag&tag=${tag.tag}`;
+            buttonsDiv.appendChild(link);
+
+            this._div_tags.appendChild(buttonsDiv);
+        });
     }
 
     private _onSave() {

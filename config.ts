@@ -10,6 +10,7 @@ class Config extends GloballyStyledHTMLElement {
     private _config = new tspb.Config();
 
     private _check_clear_bracketed_text: HTMLInputElement;
+    private _check_save_sessions: HTMLInputElement;
     private _dialog_new_replacement: HTMLDialogElement;
     private _dialog_new_tag: HTMLDialogElement;
     private _div_replacements: HTMLDivElement;
@@ -46,6 +47,12 @@ class Config extends GloballyStyledHTMLElement {
     Track Delay Seconds</label>
 <input type="number" id="input-delay-seconds" min="0" size="4"
         title="Delay sending tracks for this many seconds"
+    />
+
+<label for="check-save-sessions">
+    Save Sessions</label>
+<input type="checkbox" id="check-save-sessions"
+        title="Save sessions to the database"
     />
 
 <label for="check-clear-bracketed-text"
@@ -124,7 +131,10 @@ class Config extends GloballyStyledHTMLElement {
 
         let onInput = debounce(1000, () => this._onSave());
 
-        this._check_clear_bracketed_text = this.shadowRoot.querySelector('#check-clear-bracketed-text')
+        this._check_save_sessions = this.shadowRoot.querySelector('#check-save-sessions');
+        this._check_save_sessions.addEventListener('input', () => onInput());
+
+        this._check_clear_bracketed_text = this.shadowRoot.querySelector('#check-clear-bracketed-text');
         this._check_clear_bracketed_text.addEventListener('input', () => onInput());
         this._div_replacements = this.shadowRoot.querySelector('#div-replacements');
         this._input_delay_seconds = this.shadowRoot.querySelector('#input-delay-seconds');
@@ -195,6 +205,7 @@ class Config extends GloballyStyledHTMLElement {
         this._dialog_new_replacement.close();
         this._dialog_new_tag.close();
         this._check_clear_bracketed_text.checked = config.clearBracketedText;
+        this._check_save_sessions.checked = config.saveSessions;
         this._input_delay_seconds.value = config.trackDelaySeconds.toString();
         this._input_demo_seconds.value = config.demoDelaySeconds.toString();
 
@@ -265,6 +276,17 @@ class Config extends GloballyStyledHTMLElement {
 
             let applyButton: HTMLButtonElement = document.createElement('button');
             applyButton.innerText = 'Apply';
+            applyButton.addEventListener('click', () => {
+                bus.send(new buspb.BusMessage({
+                    topic: TOPIC_REQUEST,
+                    type: tspb.MessageTypeRequest.TAG_TRACK_REQ,
+                    message: new tspb.TagTrackRequest({
+                        tag: new tspb.TrackUpdateTag({
+                            tag: tag.tag,
+                        })},
+                    ).toBinary(),
+                }));
+            });
             buttonsDiv.appendChild(applyButton);
 
             let link: HTMLAnchorElement = document.createElement('a');
@@ -278,6 +300,7 @@ class Config extends GloballyStyledHTMLElement {
 
     private _onSave() {
         let config = this._config.clone();
+        config.saveSessions = this._check_save_sessions.checked;
         config.clearBracketedText = this._check_clear_bracketed_text.checked;
         config.demoDelaySeconds = parseInt(this._input_demo_seconds.value);
         config.trackDelaySeconds = parseInt(this._input_delay_seconds.value);

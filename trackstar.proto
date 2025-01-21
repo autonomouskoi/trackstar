@@ -21,6 +21,7 @@ message Config {
               uint32              track_delay_seconds  = 3;
               map<string, Track>  track_replacements   = 4;
     repeated  TrackTagConfig      tags                 = 5;
+              bool                save_sessions        = 6;
 }
 
 enum MessageTypeEvent {
@@ -28,7 +29,7 @@ enum MessageTypeEvent {
     TRACKSTAR_EVENT_DECK_DISCOVERED   = 1;
     TRACKSTAR_EVENT_TRACK_UPDATE      = 2;
     TRACKSTAR_EVENT_DECK_STYLE_UPDATE = 3;
-    TRACKSTAR_EVENT_TRACKLOG_UPDATE   = 4;
+    TRACKSTAR_EVENT_SESSION_UPDATE    = 4;
 }
 
 message DeckDiscovered {
@@ -68,10 +69,12 @@ enum MessageTypeRequest {
     SUBMIT_TRACK_RESP                = 3;
     CONFIG_GET_REQ                   = 4;
     CONFIG_GET_RESP                  = 5;
-    GET_ALL_TRACKS_REQ               = 6;
-    GET_ALL_TRACKS_RESP              = 7;
+    GET_SESSION_REQ                  = 6;
+    GET_SESSION_RESP                 = 7;
     TAG_TRACK_REQ                    = 8;
     TAG_TRACK_RESP                   = 9;
+    LIST_SESSIONS_REQ                = 10;
+    LIST_SESSIONS_RESP               = 11;
 }
 
 message GetTrackRequest {
@@ -81,9 +84,11 @@ message GetTrackResponse {
     TrackUpdate  track_update = 1;
 }
 
-message GetAllTracksRequest {}
-message GetAllTracksResponse {
-    repeated TrackUpdate  tracks = 1;
+message GetSessionRequest {
+    int64  session = 1;
+}
+message GetSessionResponse {
+    Session  session = 2;
 }
 
 message SubmitTrackRequest {
@@ -99,6 +104,11 @@ message TagTrackResponse {}
 message ConfigGetRequest {}
 message ConfigGetResponse {
     Config  config = 1;
+}
+
+message ListSessionsRequest {}
+message ListSessionsResponse {
+    repeated  int64  sessions = 1;
 }
 
 enum MessageTypeCommand {

@@ -6,9 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"regexp"
-	"slices"
-	"strings"
 	"sync"
 	"time"
 
@@ -31,6 +28,8 @@ const (
 
 var (
 	cfgKVKey = []byte("config")
+
+	sessionPrefix = "session/"
 )
 
 func init() {
@@ -69,7 +68,7 @@ type Trackstar struct {
 	cfg        *Config
 	kv         kv.KVPrefix
 	lock       sync.Mutex
-	updates    []*TrackUpdate
+	session    *Session
 	demoCancel func()
 }
 
@@ -77,6 +76,7 @@ func (ts *Trackstar) Start(ctx context.Context, deps *modutil.ModuleDeps) error 
 	ts.bus = deps.Bus
 	ts.Log = deps.Log
 	ts.kv = deps.KV
+	ts.session = &Session{Started: time.Now().Unix()}
 
 	if err := ts.loadConfig(); err != nil {
 		return fmt.Errorf("loading config: %w", err)
@@ -96,165 +96,6 @@ func (ts *Trackstar) Start(ctx context.Context, deps *modutil.ModuleDeps) error 
 	ts.Go(func() error { return ts.handleDirect(ctx) })
 
 	return ts.Wait()
-}
-
-func (ts *Trackstar) handleRequests(ctx context.Context) error {
-	ts.bus.HandleTypes(ctx, BusTopic_TRACKSTAR_REQUEST.String(), 8,
-		map[int32]bus.MessageHandler{
-			int32(MessageTypeRequest_TRACKSTAR_REQUEST_GET_TRACK_REQ): ts.handleGetTrackRequest,
-			int32(MessageTypeRequest_SUBMIT_TRACK_REQ):                ts.handleRequestSubmitTrack,
-			int32(MessageTypeRequest_CONFIG_GET_REQ):                  ts.handleRequestConfigGet,
-			int32(MessageTypeRequest_GET_ALL_TRACKS_REQ):              ts.handleRequestGetAllTracks,
-			int32(MessageTypeRequest_TAG_TRACK_REQ):                   ts.handleRequestTagTrack,
-		},
-		nil,
-	)
-	return nil
-}
-
-func (ts *Trackstar) handleGetTrackRequest(msg *bus.BusMessage) *bus.BusMessage {
-	reply := &bus.BusMessage{
-		Topic: msg.GetTopic(),
-		Type:  msg.Type + 1,
-	}
-	gtr := &GetTrackRequest{}
-	if reply.Error = ts.UnmarshalMessage(msg, gtr); reply.Error != nil {
-		return reply
-	}
-	ts.lock.Lock()
-	defer ts.lock.Unlock()
-	if len(ts.updates) == 0 {
-		reply.Error = &bus.Error{
-			Code:   int32(bus.CommonErrorCode_NOT_FOUND),
-			Detail: proto.String("no tracks"),
-		}
-		return reply
-	}
-	when := time.Now().Add(-time.Second * time.Duration(gtr.DeltaSeconds)).Unix()
-	gtResp := &GetTrackResponse{
-		TrackUpdate: ts.updates[0],
-	}
-	for _, tu := range ts.updates[1:] {
-		if tu.When > when {
-			break
-		}
-		gtResp.TrackUpdate = tu
-	}
-	ts.MarshalMessage(reply, gtResp)
-	return reply
-}
-
-var bracketRE = regexp.MustCompile(`\[.*\]`)
-var multispaceRE = regexp.MustCompile(`\s{2,}`)
-
-func (ts *Trackstar) mungeTrackUpdate(tu *TrackUpdate) {
-	for match, replace := range ts.cfg.TrackReplacements {
-		if strings.TrimSpace(match) == "" {
-			continue
-		}
-		if strings.Contains(tu.Track.Artist, match) || strings.Contains(tu.Track.Title, match) {
-			tu.Track.Artist = replace.Artist
-			tu.Track.Title = replace.Title
-			return
-		}
-	}
-	if ts.cfg.ClearBracketedText {
-		tu.Track.Artist = bracketRE.ReplaceAllString(tu.Track.Artist, " ")
-		tu.Track.Artist = multispaceRE.ReplaceAllString(tu.Track.Artist, " ")
-		tu.Track.Title = bracketRE.ReplaceAllString(tu.Track.Title, " ")
-		tu.Track.Title = multispaceRE.ReplaceAllString(tu.Track.Title, " ")
-	}
-	tu.Track.Artist = strings.TrimSpace(tu.Track.Artist)
-	tu.Track.Title = strings.TrimSpace(tu.Track.Title)
-}
-
-func (ts *Trackstar) handleRequestSubmitTrack(msg *bus.BusMessage) *bus.BusMessage {
-	reply := &bus.BusMessage{
-		Topic: msg.Topic,
-		Type:  msg.Type + 1,
-	}
-	str := &SubmitTrackRequest{}
-	if reply.Error = ts.UnmarshalMessage(msg, str); reply.Error != nil {
-		return reply
-	}
-	ts.mungeTrackUpdate(str.TrackUpdate)
-
-	go func() {
-		time.Sleep(time.Second * time.Duration(ts.cfg.TrackDelaySeconds))
-		ts.lock.Lock()
-		ts.updates = append(ts.updates, str.TrackUpdate)
-		ts.lock.Unlock()
-
-		tuMsg := &bus.BusMessage{
-			Topic: BusTopic_TRACKSTAR_EVENT.String(),
-			Type:  int32(MessageTypeEvent_TRACKSTAR_EVENT_TRACK_UPDATE),
-		}
-		tuMsg.Message, _ = proto.Marshal(str.TrackUpdate)
-		ts.Log.Debug("sending track", "deck_id", str.TrackUpdate.DeckId,
-			"artist", str.TrackUpdate.Track.Artist,
-			"title", str.TrackUpdate.Track.Title,
-		)
-		ts.bus.Send(tuMsg)
-	}()
-
-	ts.MarshalMessage(reply, &SubmitTrackResponse{})
-	return reply
-}
-
-func (ts *Trackstar) handleRequestConfigGet(msg *bus.BusMessage) *bus.BusMessage {
-	reply := &bus.BusMessage{
-		Topic: msg.GetTopic(),
-		Type:  msg.Type + 1,
-	}
-	ts.lock.Lock()
-	ts.MarshalMessage(reply, &ConfigGetResponse{
-		Config: ts.cfg,
-	})
-	ts.lock.Unlock()
-	return reply
-}
-
-func (ts *Trackstar) handleRequestGetAllTracks(msg *bus.BusMessage) *bus.BusMessage {
-	reply := &bus.BusMessage{
-		Topic: msg.GetTopic(),
-		Type:  msg.Type + 1,
-	}
-	ts.lock.Lock()
-	ts.MarshalMessage(reply, &GetAllTracksResponse{
-		Tracks: ts.updates,
-	})
-	ts.lock.Unlock()
-	return reply
-}
-
-func (ts *Trackstar) handleRequestTagTrack(msg *bus.BusMessage) *bus.BusMessage {
-	reply := &bus.BusMessage{
-		Topic: msg.GetTopic(),
-		Type:  msg.Type + 1,
-	}
-	ts.lock.Lock()
-	defer ts.lock.Unlock()
-	if len(ts.updates) == 0 {
-		reply.Error = &bus.Error{Code: int32(bus.CommonErrorCode_NOT_FOUND)}
-		return reply
-	}
-	ttr := &TagTrackRequest{}
-	if reply.Error = ts.UnmarshalMessage(msg, ttr); reply.Error != nil {
-		return reply
-	}
-	if !slices.ContainsFunc(ts.cfg.Tags, func(t *TrackTagConfig) bool { return t.Tag == ttr.Tag.GetTag() }) {
-		reply.Error = &bus.Error{Code: int32(bus.CommonErrorCode_NOT_FOUND)}
-		return reply
-	}
-	current := ts.updates[len(ts.updates)-1]
-	current.Tags = append(current.Tags, ttr.GetTag())
-	eventMsg := &bus.BusMessage{
-		Topic: BusTopic_TRACKSTAR_EVENT.String(),
-		Type:  int32(MessageTypeEvent_TRACKSTAR_EVENT_TRACKLOG_UPDATE),
-	}
-	reply.Error = ts.UnmarshalMessage(eventMsg, &TracklogUpdateEvent{})
-	ts.bus.Send(eventMsg)
-	return reply
 }
 
 func (ts *Trackstar) handleCommands(ctx context.Context) error {
@@ -330,4 +171,11 @@ func (ts *Trackstar) writeCfg() {
 	if err := ts.kv.SetProto(cfgKVKey, ts.cfg); err != nil {
 		ts.Log.Error("writing config", "error", err.Error())
 	}
+}
+
+func (ts *Trackstar) saveSession(session *Session) error {
+	ts.lock.Lock()
+	defer ts.lock.Unlock()
+	sessionKey := fmt.Sprintf("%s%d", sessionPrefix, session.GetStarted())
+	return ts.kv.SetProto([]byte(sessionKey), session)
 }

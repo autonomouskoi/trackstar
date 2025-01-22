@@ -21,8 +21,6 @@ class Config extends GloballyStyledHTMLElement {
     private _input_replacement_artist: HTMLInputElement;
     private _input_replacement_title: HTMLInputElement;
     private _input_tag: HTMLInputElement;
-    private _input_tag_command: HTMLInputElement;
-    private _input_tag_response: HTMLInputElement;
 
     save: (config: tspb.Config) => void = () => { };
 
@@ -101,12 +99,6 @@ class Config extends GloballyStyledHTMLElement {
 <label for="input-tag">Tag</label>
 <input type="text" id="input-tag" />
 
-<label for="input-tag-command">Command (Optional)</label>
-<input type="text" id="input-tag-command" />
-
-<label for="input-tag-response">Response (Optional)</label>
-<input type="text" id="input-tag-response" />
-
 <button id="btn-tag-save">Save</button>
 <button id="btn-tag-cancel">Cancel</button>
 </div>
@@ -179,20 +171,14 @@ class Config extends GloballyStyledHTMLElement {
         this._div_tags = this.shadowRoot.querySelector('#div-tags');
         this._dialog_new_tag = this.shadowRoot.querySelector('#dialog-tag-new');
         this._input_tag = this.shadowRoot.querySelector('#input-tag');
-        this._input_tag_command = this.shadowRoot.querySelector('#input-tag-command');
-        this._input_tag_response = this.shadowRoot.querySelector('#input-tag-response');
         buttonTagNew.addEventListener('click', () => {
             this._input_tag.value = '';
-            this._input_tag_command.value = '';
-            this._input_tag_response.value = '';
             this._dialog_new_tag.showModal();
         });
         buttonTagCancel.addEventListener('click', () => this._dialog_new_tag.close());
         buttonTagSave.addEventListener('click', () => {
             let ttc = new tspb.TrackTagConfig({
                 tag: this._input_tag.value,
-                command: this._input_tag_command.value,
-                response: this._input_tag_response.value,
             });
             let config = this._config.clone();
             config.tags = [...config.tags, ttc];
@@ -244,22 +230,12 @@ class Config extends GloballyStyledHTMLElement {
 
         this._div_tags.innerHTML = `
 <div class="column-header">Tag</div>
-<div class="column-header">Command</div>
-<div class="column-header">Response</div>
 <div class="column-header"></div>
 `;
         this._config.tags.forEach((tag) => {
             let tagDiv = document.createElement('div');
             tagDiv.innerText = tag.tag;
             this._div_tags.appendChild(tagDiv);
-
-            let tagCommand = document.createElement('div');
-            tagCommand.innerHTML = `<code>${tag.command}</code>`;
-            this._div_tags.appendChild(tagCommand);
-
-            let tagResponse = document.createElement('div');
-            tagResponse.innerHTML = `<code>${tag.response}</code>`;
-            this._div_tags.appendChild(tagResponse);
 
             let buttonsDiv = document.createElement('div');
 

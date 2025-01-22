@@ -10,9 +10,7 @@ enum BusTopic {
 }
 
 message TrackTagConfig {
-    string  tag      = 1;
-    string  command  = 2;
-    string  response = 3;
+    string  tag = 1;
 }
 
 message Config {

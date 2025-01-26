@@ -90,7 +90,7 @@ func (o *Overlay) Start(ctx context.Context, deps *modutil.ModuleDeps) error {
 		io.Copy(w, strings.NewReader(o.cfg.CustomCss))
 	})
 	mux.Handle("/", http.FileServer(fs))
-	o.Handler = http.StripPrefix("/m/trackstaroverlay", mux)
+	o.Handler = mux
 
 	o.handleRequests(ctx)
 

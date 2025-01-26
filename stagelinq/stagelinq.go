@@ -170,7 +170,7 @@ func (sl *StagelinQ) Start(ctx context.Context, deps *modutil.ModuleDeps) error 
 	if err != nil {
 		return err
 	}
-	sl.Handler = http.StripPrefix("/m/trackstarstagelinq", http.FileServer(fs))
+	sl.Handler = http.FileServer(fs)
 
 	for {
 		sl.Log.Debug("starting device search")

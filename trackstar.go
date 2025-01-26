@@ -89,7 +89,7 @@ func (ts *Trackstar) Start(ctx context.Context, deps *modutil.ModuleDeps) error 
 	if err != nil {
 		return fmt.Errorf("get web FS %w", err)
 	}
-	ts.Handler = http.StripPrefix("/m/trackstar", http.FileServer(fs))
+	ts.Handler = http.FileServer(fs)
 
 	ts.Go(func() error { return ts.handleRequests(ctx) })
 	ts.Go(func() error { return ts.handleCommands(ctx) })

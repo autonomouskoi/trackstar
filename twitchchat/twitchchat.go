@@ -81,7 +81,7 @@ func (tc *TwitchChat) Start(ctx context.Context, deps *modutil.ModuleDeps) error
 	if err != nil {
 		return err
 	}
-	tc.Handler = http.StripPrefix("/m/trackstartwitchchat", http.FileServer(fs))
+	tc.Handler = http.FileServer(fs)
 	tc.bus = deps.Bus
 	tc.kv = &deps.KV
 	tc.Log = deps.Log

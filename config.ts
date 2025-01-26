@@ -90,7 +90,7 @@ class Config extends GloballyStyledHTMLElement {
 <hr>
 <section>
     <h4>Tags <button id="btn-new-tag"> + </button></h4>
-    <div class="grid grid-4-col" id="div-tags"></div>
+    <div class="grid grid-2-col" id="div-tags"></div>
 </section>
 <dialog id="dialog-tag-new">
     <h2>New Tag</h2>

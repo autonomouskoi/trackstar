@@ -35,6 +35,7 @@ var (
 func init() {
 	manifest := &modules.Manifest{
 		Id:          moduleID,
+		Title:       "Trackstar",
 		Name:        "trackstar",
 		Description: "Track songs played during your session",
 		WebPaths: []*modules.ManifestWebPath{

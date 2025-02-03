@@ -30,6 +30,7 @@ var (
 func init() {
 	manifest := &modules.Manifest{
 		Id:          "74623a194d49d3ca",
+		Title:       "TS: Overlay",
 		Name:        "trackstaroverlay",
 		Description: "OBS Overlay for Trackstar",
 		WebPaths: []*modules.ManifestWebPath{

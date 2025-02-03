@@ -39,6 +39,7 @@ var (
 func init() {
 	manifest := &modules.Manifest{
 		Id:          "62071945ac98ada1",
+		Title:       "TS: Twitch Chat",
 		Name:        "trackstartwitchchat",
 		Description: "Trackstar integration with Twitch chat",
 		WebPaths: []*modules.ManifestWebPath{

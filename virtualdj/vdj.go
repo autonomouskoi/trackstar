@@ -27,6 +27,7 @@ const (
 func init() {
 	manifest := &modules.Manifest{
 		Id:          "8bd0166d36fec0c5",
+		Title:       "TS: VirtualDJ",
 		Name:        "trackstarvirtualdj",
 		Description: "Retrieve real-time track information from VirtualDJ by reading History files",
 		WebPaths: []*modules.ManifestWebPath{

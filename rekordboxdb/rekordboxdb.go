@@ -19,6 +19,7 @@ import (
 func init() {
 	manifest := &modules.Manifest{
 		Id:          "ce1f91f7dc0fa32c",
+		Title:       "TS: Rekordbox",
 		Name:        "trackstarrekordboxdb",
 		Description: "Retrieve real-time track information directly from the Rekordbox database. There's a delay configured in Rekordbox Preferences -> Advanced -> Browse -> Playback time setting",
 		WebPaths: []*modules.ManifestWebPath{

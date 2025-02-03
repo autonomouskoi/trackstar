@@ -20,6 +20,7 @@ var zeroTrack Track
 func init() {
 	manifest := &modules.Manifest{
 		Id:          "9be27608da1d141b",
+		Title:       "TS: Serato",
 		Name:        "trackstarserato",
 		Description: "Retrieve real-time track information from Serato by reading session files",
 		WebPaths: []*modules.ManifestWebPath{

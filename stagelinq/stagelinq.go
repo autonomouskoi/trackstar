@@ -43,6 +43,7 @@ var (
 func init() {
 	manifest := &modules.Manifest{
 		Id:          "9567a0da6bf0061e",
+		Title:       "TS: StagelinQ",
 		Name:        "trackstarstagelinq",
 		Description: "Retrieve real-time track information from StagelinQ-capable Denon DJ devices",
 		WebPaths: []*modules.ManifestWebPath{

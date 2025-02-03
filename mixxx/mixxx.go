@@ -20,6 +20,7 @@ import (
 func init() {
 	manifest := &modules.Manifest{
 		Id:          "2d1b8258de88edc7",
+		Title:       "TS: Mixxx",
 		Name:        "trackstarmixxx",
 		Description: "Retrieve real-time track information directly from the Mixxx History",
 		WebPaths: []*modules.ManifestWebPath{

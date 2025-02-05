@@ -180,3 +180,10 @@ func (ts *Trackstar) saveSession(session *Session) error {
 	sessionKey := fmt.Sprintf("%s%d", sessionPrefix, session.GetStarted())
 	return ts.kv.SetProto([]byte(sessionKey), session)
 }
+
+//go:embed icon.svg
+var icon []byte
+
+func (*Trackstar) Icon() ([]byte, string, error) {
+	return icon, "image/svg+xml", nil
+}

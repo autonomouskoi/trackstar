@@ -2,6 +2,7 @@ package rekordboxdb
 
 import (
 	"context"
+	_ "embed"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -135,4 +136,11 @@ func (rbdb *RekordboxDB) handleRB(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+//go:embed icon.svg
+var icon []byte
+
+func (*RekordboxDB) Icon() ([]byte, string, error) {
+	return icon, "image/svg+xml", nil
 }

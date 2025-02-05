@@ -3,6 +3,7 @@ package mixxx
 import (
 	"context"
 	"database/sql"
+	_ "embed"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -137,4 +138,11 @@ SELECT artist, title
 		Artist: t.Artist.String,
 		Title:  t.Title.String,
 	}, nil
+}
+
+//go:embed icon.svg
+var icon []byte
+
+func (*Mixxx) Icon() ([]byte, string, error) {
+	return icon, "image/svg+xml", nil
 }

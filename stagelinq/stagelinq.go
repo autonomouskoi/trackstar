@@ -545,3 +545,10 @@ func (sl *StagelinQ) handleGetDevices(msg *bus.BusMessage) {
 		}
 	})
 }
+
+//go:embed icon.svg
+var icon []byte
+
+func (*StagelinQ) Icon() ([]byte, string, error) {
+	return icon, "image/svg+xml", nil
+}

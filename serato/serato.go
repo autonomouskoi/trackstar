@@ -2,6 +2,7 @@ package serato
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"io"
 	"os"
@@ -190,4 +191,11 @@ func getLatestTrackAfter(r io.Reader, after time.Time) (Track, error) {
 		return latest, fmt.Errorf("reading session: %w", err)
 	}
 	return latest, nil
+}
+
+//go:embed icon.svg
+var icon []byte
+
+func (*Serato) Icon() ([]byte, string, error) {
+	return icon, "image/svg+xml", nil
 }

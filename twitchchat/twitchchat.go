@@ -303,3 +303,10 @@ func (tc *TwitchChat) writeCfg() {
 		tc.Log.Error("writing config", "error", err.Error())
 	}
 }
+
+//go:embed icon.svg
+var icon []byte
+
+func (*TwitchChat) Icon() ([]byte, string, error) {
+	return icon, "image/svg+xml", nil
+}

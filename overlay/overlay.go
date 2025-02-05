@@ -108,3 +108,10 @@ func (o *Overlay) writeCfg() {
 		o.Log.Error("writing config", "error", err.Error())
 	}
 }
+
+//go:embed icon.svg
+var icon []byte
+
+func (*Overlay) Icon() ([]byte, string, error) {
+	return icon, "image/svg+xml", nil
+}

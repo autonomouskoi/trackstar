@@ -3,6 +3,7 @@ package virtualdj
 import (
 	"bufio"
 	"context"
+	_ "embed"
 	"encoding/xml"
 	"fmt"
 	"log/slog"
@@ -151,4 +152,11 @@ func parseLine(line string) (entry, error) {
 		return e, fmt.Errorf("parsing XML %q: %w", line, err)
 	}
 	return e, nil
+}
+
+//go:embed icon.svg
+var icon []byte
+
+func (*VirtualDJ) Icon() ([]byte, string, error) {
+	return icon, "image/svg+xml", nil
 }

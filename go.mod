@@ -3,10 +3,10 @@ module github.com/autonomouskoi/trackstar
 go 1.22.1
 
 require (
-	github.com/autonomouskoi/akcore v0.0.16
+	github.com/autonomouskoi/akcore v0.0.17
 	github.com/autonomouskoi/datastruct v0.0.13
 	github.com/autonomouskoi/mageutil v0.0.15
-	github.com/autonomouskoi/twitch v0.0.16
+	github.com/autonomouskoi/twitch v0.0.17
 	github.com/icedream/go-stagelinq v1.0.0
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/magefile/mage v1.15.0

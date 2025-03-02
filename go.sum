@@ -8,6 +8,8 @@ github.com/autonomouskoi/akcore v0.0.15 h1:cGx5stUy6M4t8Cvt5bEGm4xIF6X/MgIPORgLZ
 github.com/autonomouskoi/akcore v0.0.15/go.mod h1:93GhtiB/RHVX6WdHv3AP/VT/T/amxCkxqOqMf3Z8MWg=
 github.com/autonomouskoi/akcore v0.0.16 h1:pzkYPVaeMlUsSxQBZcMz9KshY6zPZ9s23uMXs5MeNuw=
 github.com/autonomouskoi/akcore v0.0.16/go.mod h1:93GhtiB/RHVX6WdHv3AP/VT/T/amxCkxqOqMf3Z8MWg=
+github.com/autonomouskoi/akcore v0.0.17 h1:f9cjcbmkt6Z858rJMjitYk2olLUs3l5Q8bbiVNTw3u8=
+github.com/autonomouskoi/akcore v0.0.17/go.mod h1:93GhtiB/RHVX6WdHv3AP/VT/T/amxCkxqOqMf3Z8MWg=
 github.com/autonomouskoi/datastruct v0.0.13 h1:EuEbJLhBPSOgUNegRQKZ370TRtifVcXYijrQaVMN0fs=
 github.com/autonomouskoi/datastruct v0.0.13/go.mod h1:vavjFRRPddUMUKJW2n71OFfKCMqriBQZYaScP7ZZz48=
 github.com/autonomouskoi/mageutil v0.0.15 h1:YvjT7vsUicczhKooNJi+s0C5xPTm3/ZStd/DC82GEGY=
@@ -16,6 +18,8 @@ github.com/autonomouskoi/twitch v0.0.15 h1:DYflqK+DnHl/SB0Dml4Tml2szSE+MGjYBs2Ty
 github.com/autonomouskoi/twitch v0.0.15/go.mod h1:E1nKI8ZneldOPxywnIww+e269Qjl3tlfCtxOE7fWWjI=
 github.com/autonomouskoi/twitch v0.0.16 h1:OEDTlqFMPwO1NlK0D5aC+FJYtuIo09iF8py4omeG5Io=
 github.com/autonomouskoi/twitch v0.0.16/go.mod h1:tqNhzxIqlEJTQgmksXU0QBa5N4suGOU2F5u1qKJlIuY=
+github.com/autonomouskoi/twitch v0.0.17 h1:MX5mJSmbKTdxVFQ4QnfEC21Iw39z6ByffLLmREJUU/w=
+github.com/autonomouskoi/twitch v0.0.17/go.mod h1:fGZEu+yMzVmCpcZ6g+jEbDIoa5M/8iuDj2pzYspjBP0=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=

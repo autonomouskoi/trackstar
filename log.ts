@@ -27,6 +27,10 @@ class Log extends GloballyStyledHTMLElement {
         super();
         this.shadowRoot.innerHTML = `
 <style>
+legend {
+    font-weight: bold;
+    font-size: 1.3rem;
+}
 td {
     padding: 0.25rem;
 }

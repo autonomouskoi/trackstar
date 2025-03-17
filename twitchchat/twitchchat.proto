@@ -35,7 +35,9 @@ message ConfigGetResponse {
 message ConfigSetRequest {
     Config  config = 1;
 }
-message ConfigSetResponse {}
+message ConfigSetResponse {
+    Config  config = 1;
+}
 
 message TrackAnnounceRequest {}
 message TrackAnnounceResponse {}

@@ -141,10 +141,10 @@ func (tc *TwitchChat) handleCommandConfigSet(msg *bus.BusMessage) *bus.BusMessag
 	tc.lock.Lock()
 	tc.cfg = csr.Config
 	tc.tmpl = tmpl
+	tc.MarshalMessage(reply, &ConfigSetResponse{Config: tc.cfg})
 	tc.lock.Unlock()
 	tc.writeCfg()
 
-	tc.MarshalMessage(reply, &ConfigSetResponse{})
 	return reply
 }
 

@@ -444,7 +444,6 @@ func (sl *StagelinQ) maybeNotify(ds *deckState) {
 		return
 	}
 	if ds.upfader <= sl.cfg.FaderThreshold && sl.cfg.FaderThreshold != 0 {
-		sl.Log.Debug("track below threshold", "fader", ds.upfader, "threshold", sl.cfg.FaderThreshold)
 		return
 	}
 
@@ -458,7 +457,7 @@ func (sl *StagelinQ) maybeNotify(ds *deckState) {
 		sl.Log.Error("marshalling Track proto", "error", err.Error())
 		return
 	}
-	sl.Log.Debug("sending track", "track", ds.track)
+	sl.Log.Info("sending track", "track", ds.track)
 	sl.bus.Send(&bus.BusMessage{
 		Topic:   trackstar.BusTopic_TRACKSTAR_REQUEST.String(),
 		Type:    int32(trackstar.MessageTypeRequest_SUBMIT_TRACK_REQ),

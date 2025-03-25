@@ -1,9 +1,9 @@
 import { bus, enumName } from "/bus.js";
 import * as buspb from "/pb/bus/bus_pb.js";
 import * as stagelinqpb from "/m/trackstarstagelinq/pb/stagelinq_pb.js";
-
-const TOPIC_STAGELINQ_STATE = enumName(stagelinqpb.BusTopics, stagelinqpb.BusTopics.STAGELINQ_STATE);
-const TOPIC_STAGELINQ_CONTROL = enumName(stagelinqpb.BusTopics, stagelinqpb.BusTopics.STAGELINQ_CONTROL);
+import { Cfg } from "./controller.js";
+import { Config } from "./config.js";
+import { Devices } from "./devices.js";
 
 class StagelinQDevice extends HTMLElement {
     private _device: stagelinqpb.Device;
@@ -45,6 +45,13 @@ fieldset {
 customElements.define('stagelinq-device', StagelinQDevice);
 
 function start(mainContainer: HTMLElement) {
+    let cfg = new Cfg();
+    mainContainer.appendChild(new Config(cfg));
+    mainContainer.appendChild(new Devices());
+
+    //cfg.refresh();
+
+    /*
     let button = document.createElement('button');
     button.innerText = 'Capture Fader Threshold';
 
@@ -130,6 +137,7 @@ function start(mainContainer: HTMLElement) {
                 updateDevices(gdr.devices);
             });
         });
+        */
 }
 
 export { start };

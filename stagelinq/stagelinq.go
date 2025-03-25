@@ -7,12 +7,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/icedream/go-stagelinq"
 	"golang.org/x/exp/maps"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/autonomouskoi/akcore"
@@ -148,6 +149,7 @@ type StagelinQ struct {
 	modutil.ModuleBase
 	bus        *bus.Bus
 	listener   *stagelinq.Listener
+	lock       sync.Mutex
 	discovered *discovered
 	deckStates map[string]*deckState
 	cfg        *Config
@@ -173,18 +175,30 @@ func (sl *StagelinQ) Start(ctx context.Context, deps *modutil.ModuleDeps) error 
 	}
 	sl.Handler = http.FileServer(fs)
 
-	for {
-		sl.Log.Debug("starting device search")
-		if err := sl.start(ctx); err != nil {
-			sl.Log.Error("searching for devices", "error", err.Error())
+	sl.Go(func() error {
+		sl.handleRequests(ctx)
+		return nil
+	})
+	sl.Go(func() error {
+		sl.handleCommands(ctx)
+		return nil
+	})
+	sl.Go(func() error {
+		defer sl.Log.Debug("exiting device search")
+		for {
+			sl.Log.Debug("starting device search")
+			if err := sl.start(ctx); err != nil {
+				sl.Log.Error("searching for devices", "error", err.Error())
+			}
+			select {
+			case <-ctx.Done():
+				return nil
+			case <-time.After(time.Second * 15):
+				// try again
+			}
 		}
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(time.Second * 15):
-			// try again
-		}
-	}
+	})
+	return sl.Wait()
 }
 
 func (sl *StagelinQ) start(ctx context.Context) error {
@@ -219,7 +233,8 @@ func (sl *StagelinQ) start(ctx context.Context) error {
 	}
 	defer sl.listener.Close()
 	sl.listener.AnnounceEvery(time.Second)
-	sl.Go(func() error {
+	eg := errgroup.Group{}
+	eg.Go(func() error {
 		defer sl.Log.Debug("exiting", "loop", "discover")
 		for {
 			if err := ctx.Err(); err != nil {
@@ -228,15 +243,17 @@ func (sl *StagelinQ) start(ctx context.Context) error {
 			sl.discover(ctx)
 		}
 	})
-	sl.Go(func() error {
+	eg.Go(func() error {
 		sl.handleRequests(ctx)
 		sl.Log.Debug("exiting", "loop", "handleRequests")
 		return nil
 	})
-	return sl.Wait()
+	return eg.Wait()
 }
 
 func (sl *StagelinQ) writeCfg() {
+	sl.lock.Lock()
+	defer sl.lock.Unlock()
 	if err := sl.kv.SetProto(cfgKVKey, sl.cfg); err != nil {
 		sl.Log.Error("writing config", "error", err.Error())
 	}
@@ -300,7 +317,6 @@ func (sl *StagelinQ) handleDevice(ctx context.Context, device *stagelinq.Device)
 	}
 
 	sl.discovered.setServices(device, services)
-	sl.handleGetDevices(nil)
 
 	for _, service := range services {
 		sl.Log.Debug("service offer",
@@ -464,85 +480,6 @@ func (sl *StagelinQ) maybeNotify(ds *deckState) {
 		Message: b,
 	})
 	ds.notified = true
-}
-
-func (sl *StagelinQ) handleRequests(ctx context.Context) {
-	in := make(chan *bus.BusMessage, 16)
-	sl.bus.Subscribe(BusTopics_STAGELINQ_CONTROL.String(), in)
-	go func() {
-		<-ctx.Done()
-		sl.bus.Unsubscribe(BusTopics_STAGELINQ_CONTROL.String(), in)
-		bus.Drain(in)
-	}()
-	for msg := range in {
-		switch msg.Type {
-		case int32(MessageType_TYPE_CAPTURE_THRESHOLD_REQUEST):
-			highest := 0.0
-			for _, ds := range sl.deckStates {
-				if ds.upfader > highest {
-					highest = ds.upfader
-				}
-			}
-			sl.cfg.FaderThreshold = highest
-			sl.Log.Debug("setting threshold", "threshold", highest)
-			sl.writeCfg()
-			sl.sendThreshold()
-		case int32(MessageType_TYPE_GET_THRESHOLD_REQUEST):
-			sl.sendThreshold()
-		case int32(MessageType_TYPE_GET_DEVICES_REQUEST):
-			sl.handleGetDevices(msg)
-		}
-	}
-}
-
-func (sl *StagelinQ) sendThreshold() {
-	b, err := proto.Marshal(&ThresholdUpdate{
-		FaderThreshold: sl.cfg.FaderThreshold,
-	})
-	if err != nil {
-		sl.Log.Error("marshalling CaptureThresholdResponse", "error", err.Error())
-		return
-	}
-	sl.bus.Send(&bus.BusMessage{
-		Topic:   BusTopics_STAGELINQ_STATE.String(),
-		Type:    int32(MessageType_TYPE_THRESHOLD_UPDATE),
-		Message: b,
-	})
-}
-
-func (sl *StagelinQ) handleGetDevices(msg *bus.BusMessage) {
-	sl.discovered.processDevices(func(m []*device) {
-		devices := make([]*Device, 0, len(m))
-		for _, device := range m {
-			devices = append(devices, device.pb)
-		}
-		slices.SortFunc(devices, func(a, b *Device) int {
-			switch {
-			case a.Ip == b.Ip:
-				return 0
-			case a.Ip == b.Ip:
-				return -1
-			}
-			return 1
-		})
-		b, err := proto.Marshal(&GetDevicesResponse{
-			Devices: devices,
-		})
-		if err != nil {
-			sl.Log.Error("marshalling GetDevicesResponse", "error", err.Error())
-			return
-		}
-		reply := &bus.BusMessage{
-			Topic:   BusTopics_STAGELINQ_STATE.String(),
-			Type:    int32(MessageType_TYPE_GET_DEVICES_RESPONSE),
-			Message: b,
-		}
-		if msg == nil {
-			sl.bus.Send(reply)
-		} else {
-			sl.bus.SendReply(msg, reply)
-		}
-	})
 }
 
 //go:embed icon.svg

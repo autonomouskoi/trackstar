@@ -4,8 +4,9 @@ package stagelinq;
 option go_package = "github.com/autonomouskoi/trackstar/stagelinq";
 
 enum BusTopics {
-    STAGELINQ_STATE   = 0;
-    STAGELINQ_CONTROL = 1;
+    STAGELINQ_EVENT   = 0;
+    STAGELINQ_REQUEST = 1;
+    STAGELINQ_COMMAND = 2;
 }
 
 enum MessageType {
@@ -21,11 +22,40 @@ message Config {
     double  fader_threshold = 1;
 }
 
-message CaptureThresholdRequest {
+enum MessageTypeRequest {
+    CONFIG_GET_REQ         = 0;
+    CONFIG_GET_RESP        = 1;
+    GET_DEVICES_REQ        = 2;
+    GET_DEVICES_RESP       = 3;
+    CAPTURE_THRESHOLD_REQ  = 4;
+    CAPTURE_THRESHOLD_RESP = 5;
 }
 
-message ThresholdUpdate {
+message ConfigGetRequest {}
+message ConfigGetResponse{
+    Config  config = 1;
+}
+
+message GetDevicesRequest {}
+message GetDevicesResponse {
+    repeated Device  devices = 1;
+}
+
+message CaptureThresholdRequest {}
+message CaptureThresholdResponse {
     double  fader_threshold = 1;
+}
+
+enum MessageTypeCommand {
+    CONFIG_SET_REQ  = 0;
+    CONFIG_SET_RESP = 1;
+}
+
+message ConfigSetRequest {
+    Config  config = 1;
+}
+message ConfigSetResponse {
+    Config  config = 1;
 }
 
 message Service {
@@ -39,11 +69,4 @@ message Device {
              string   software_name    = 3;
              string   software_verison = 4;
     repeated Service  services         = 5;
-}
-
-message GetDevicesRequest {
-}
-
-message GetDevicesResponse {
-    repeated Device  devices = 1;
 }

@@ -2,6 +2,7 @@ package rekordboxdb
 
 import (
 	"context"
+	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -217,8 +218,8 @@ created_at: DATETIME
 updated_at: DATETIME
 */
 type dbContent struct {
-	Title    string `db:"Title"`
-	ArtistID string `db:"ArtistID"`
+	Title    sql.NullString `db:"Title"`
+	ArtistID sql.NullString `db:"ArtistID"`
 }
 
 func (db db) GetTrack(ctx context.Context, contentID string) (*trackstar.Track, error) {
@@ -233,9 +234,11 @@ SELECT Title, ArtistID FROM DjmdContent
 	}
 
 	track := &trackstar.Track{
-		Title: content.Title,
+		Title: content.Title.String,
 	}
-	err = db.GetContext(ctx, &track.Artist, `SELECT Name FROM DjmdArtist WHERE ID = ?`, content.ArtistID)
+	var artist sql.NullString
+	err = db.GetContext(ctx, &artist, `SELECT Name FROM DjmdArtist WHERE ID = ?`, content.ArtistID)
+	track.Artist = artist.String
 	return track, err
 }
 

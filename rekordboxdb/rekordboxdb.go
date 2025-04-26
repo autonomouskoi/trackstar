@@ -111,9 +111,9 @@ func (rbdb *RekordboxDB) handleRB(ctx context.Context) error {
 		if trackNo := latestEntry.TrackNo; trackNo != lastTrackNo {
 			track, err := rbdb.db.GetTrack(ctx, latestEntry.ContentID)
 			if err != nil {
-				return fmt.Errorf("getting track: %w", err)
+				rbdb.log.Error("getting track", "content_id", latestEntry.ContentID, "error", err.Error())
+				continue
 			}
-			fmt.Printf("%s - %s\n", track.Artist, track.Title)
 			b, err := proto.Marshal(&trackstar.SubmitTrackRequest{
 				TrackUpdate: &trackstar.TrackUpdate{
 					DeckId: "Rekordbox",

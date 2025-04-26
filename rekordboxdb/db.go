@@ -236,10 +236,18 @@ SELECT Title, ArtistID FROM DjmdContent
 	track := &trackstar.Track{
 		Title: content.Title.String,
 	}
+	if !content.ArtistID.Valid {
+		return track, nil
+	}
 	var artist sql.NullString
 	err = db.GetContext(ctx, &artist, `SELECT Name FROM DjmdArtist WHERE ID = ?`, content.ArtistID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) { // this has been seen in the wild
+			return track, nil
+		}
+	}
 	track.Artist = artist.String
-	return track, err
+	return track, nil
 }
 
 func discoverTable(dbx *sqlx.DB, table string) error {

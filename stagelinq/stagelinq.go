@@ -157,7 +157,7 @@ type StagelinQ struct {
 }
 
 func (sl *StagelinQ) Start(ctx context.Context, deps *modutil.ModuleDeps) error {
-	sl.Log = deps.Log.With("module", "trackstar/stagelinq")
+	sl.Log = deps.Log
 	sl.bus = deps.Bus
 	sl.kv = deps.KV
 	sl.deckStates = map[string]*deckState{}

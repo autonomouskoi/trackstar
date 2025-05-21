@@ -6,7 +6,6 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -15,6 +14,7 @@ import (
 	"github.com/autonomouskoi/akcore/bus"
 	"github.com/autonomouskoi/akcore/modules"
 	"github.com/autonomouskoi/akcore/modules/modutil"
+	"github.com/autonomouskoi/akcore/svc/log"
 	"github.com/autonomouskoi/trackstar"
 )
 
@@ -39,7 +39,7 @@ type Mixxx struct {
 	modutil.ModuleBase
 	db  *sqlx.DB
 	bus *bus.Bus
-	Log *slog.Logger
+	Log log.Logger
 }
 
 func (m *Mixxx) Start(ctx context.Context, deps *modutil.ModuleDeps) error {

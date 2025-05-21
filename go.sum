@@ -8,10 +8,14 @@ github.com/autonomouskoi/akcore v0.0.19 h1:D1S6mgKlF9LoIJ3O+GhsZaikIvTH/NCRPLUF7
 github.com/autonomouskoi/akcore v0.0.19/go.mod h1:xMiZS55TjBurPEeB7roL2OL2JD/POYBfh7oGMngQdEI=
 github.com/autonomouskoi/akcore v0.1.0 h1:13AiMlAXpi32PKvTKwceJ09l/9xYmZRvHmesdHrCd6Y=
 github.com/autonomouskoi/akcore v0.1.0/go.mod h1:NJRN8jr5bJk1SjZvqLV43XoF+4ZLIcN5nzyhl322Bhg=
+github.com/autonomouskoi/akcore v0.1.1 h1:wdnF+UYoq9prHbtKnGZm3ZrtemWCHmLG6hlavt2piEk=
+github.com/autonomouskoi/akcore v0.1.1/go.mod h1:NJRN8jr5bJk1SjZvqLV43XoF+4ZLIcN5nzyhl322Bhg=
 github.com/autonomouskoi/datastruct v0.0.13 h1:EuEbJLhBPSOgUNegRQKZ370TRtifVcXYijrQaVMN0fs=
 github.com/autonomouskoi/datastruct v0.0.13/go.mod h1:vavjFRRPddUMUKJW2n71OFfKCMqriBQZYaScP7ZZz48=
 github.com/autonomouskoi/mageutil v0.0.16 h1:aHjdBOlnSm9/LhBOkAYpxes1jZH+B5lFA+5jyNkUxSQ=
 github.com/autonomouskoi/mageutil v0.0.16/go.mod h1:t46xOJ4x+k3aOxV4T2uAaPv9yNNUxSs+H8yWd+A/svI=
+github.com/autonomouskoi/mageutil v0.0.17 h1:pKxnTJa47BpyS3yow0y0fsrzFoSnFNUqx8AfDEogmug=
+github.com/autonomouskoi/mageutil v0.0.17/go.mod h1:t46xOJ4x+k3aOxV4T2uAaPv9yNNUxSs+H8yWd+A/svI=
 github.com/autonomouskoi/twitch v0.0.18 h1:oj6NLaZU5RSgIMyTxJFmFv9iSGnpKWDl3z5VGAMl/uM=
 github.com/autonomouskoi/twitch v0.0.18/go.mod h1:YAsI87h46iSy/hFil/mKX+YWV7JHKGv1otVFYUwgdto=
 github.com/autonomouskoi/twitch v0.0.19 h1:HulYYmvivBzftlRW19Lejj5cW8mXV/mv5niqcvKmNjU=

@@ -6,7 +6,6 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"strings"
 	"sync"
@@ -21,6 +20,7 @@ import (
 	"github.com/autonomouskoi/akcore/modules"
 	"github.com/autonomouskoi/akcore/modules/modutil"
 	"github.com/autonomouskoi/akcore/storage/kv"
+	"github.com/autonomouskoi/akcore/svc/log"
 	"github.com/autonomouskoi/akcore/web/webutil"
 	"github.com/autonomouskoi/trackstar"
 	"github.com/autonomouskoi/twitch"
@@ -71,7 +71,7 @@ type TwitchChat struct {
 	modutil.ModuleBase
 	bus  *bus.Bus
 	lock sync.Mutex
-	Log  *slog.Logger
+	Log  log.Logger
 	cfg  *Config
 	kv   *kv.KVPrefix
 	tmpl *template.Template

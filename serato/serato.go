@@ -13,6 +13,7 @@ import (
 	"github.com/autonomouskoi/akcore/bus"
 	"github.com/autonomouskoi/akcore/modules"
 	"github.com/autonomouskoi/akcore/modules/modutil"
+	"github.com/autonomouskoi/akcore/svc/log"
 	"github.com/autonomouskoi/trackstar"
 )
 
@@ -48,8 +49,9 @@ func (s *Serato) Start(ctx context.Context, deps *modutil.ModuleDeps) error {
 	if err != nil {
 		return fmt.Errorf("getting session path: %w", err)
 	}
+	s.Log.Info("using session path", "path", sessionDirPath)
 
-	sf := newSessionFile(sessionDirPath)
+	sf := newSessionFile(sessionDirPath, s.Log)
 	sf.handleTrack = s.handleTrack
 	track, err := sf.discoverFile(ctx)
 	if err != nil {
@@ -57,6 +59,7 @@ func (s *Serato) Start(ctx context.Context, deps *modutil.ModuleDeps) error {
 	}
 	s.handleTrack(track)
 
+	s.Log.Info("starting watch loop")
 	return sf.watch(ctx)
 }
 
@@ -74,6 +77,10 @@ func (s *Serato) handleTrack(t Track) {
 			},
 		},
 	}
+	s.Log.Info("sending track",
+		"artist", str.TrackUpdate.Track.Artist,
+		"title", str.TrackUpdate.Track.Title,
+	)
 	s.MarshalMessage(msg, str)
 	s.bus.Send(msg)
 }
@@ -84,12 +91,14 @@ type sessionFile struct {
 	mod         time.Time
 	offset      int64
 	handleTrack func(Track)
+	log         log.Logger
 }
 
-func newSessionFile(dir string) *sessionFile {
+func newSessionFile(dir string, log log.Logger) *sessionFile {
 	return &sessionFile{
 		dir: dir,
 		mod: time.Now(),
+		log: log,
 	}
 }
 
@@ -120,6 +129,7 @@ func (sf *sessionFile) discoverFile(ctx context.Context) (Track, error) {
 			if track != zeroTrack {
 				sf.mod = fi.ModTime()
 				sf.name = de.Name()
+				sf.log.Debug("discovered file", "file", sf.name, "modified", sf.mod)
 				return track, nil
 			}
 		}
@@ -136,7 +146,7 @@ func (sf *sessionFile) watch(ctx context.Context) error {
 		sessionPath := filepath.Join(sf.dir, sf.name)
 		stat, err := os.Stat(sessionPath)
 		if err != nil {
-			return fmt.Errorf("stating session %s: %w", sf.name, err)
+			return fmt.Errorf("statting session %s: %w", sf.name, err)
 		}
 		if stat.ModTime().After(sf.mod) {
 			track, err := sf.getLatestTrack(sf.name)
@@ -147,6 +157,11 @@ func (sf *sessionFile) watch(ctx context.Context) error {
 				sf.handleTrack(track)
 			}
 		}
+		sf.log.Debug("session not newer",
+			"path", sessionPath,
+			"than", sf.mod,
+			"modified", stat.ModTime(),
+		)
 
 		select {
 		case <-ctx.Done():

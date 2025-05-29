@@ -32,11 +32,11 @@ func OverlayWebSrc() {
 func OverlayGoProtos() error {
 	dest := filepath.Join(overlayDir, "overlay.pb.go")
 	src := filepath.Join(overlayDir, "overlay.proto")
-	return mageutil.GoProto(dest, src, overlayDir, "module=github.com/autonomouskoi/trackstar/overlay")
+	return mageutil.GoProto(dest, src, overlayDir, overlayDir, "module=github.com/autonomouskoi/trackstar/overlay")
 }
 func OverlayTSProtos() error {
 	mg.Deps(OverlayWebDir)
-	return mageutil.TSProtosInDir(overlayWebDir, overlayDir)
+	return mageutil.TSProtosInDir(overlayWebDir, overlayDir, filepath.Join(overlayDir, "node_modules"))
 }
 
 func OverlayVersion() error {

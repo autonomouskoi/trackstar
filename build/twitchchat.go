@@ -26,12 +26,12 @@ func TwitchchatWebSrc() {
 func TwitchchatGoProtos() error {
 	dest := filepath.Join(twitchchatDir, "twitchchat.pb.go")
 	src := filepath.Join(twitchchatDir, "twitchchat.proto")
-	return mageutil.GoProto(dest, src, twitchchatDir, "module=github.com/autonomouskoi/trackstar/twitchchat")
+	return mageutil.GoProto(dest, src, twitchchatDir, twitchchatDir, "module=github.com/autonomouskoi/trackstar/twitchchat")
 }
 
 func TwitchchatTSProtos() error {
 	mg.Deps(TwitchchatWebDir)
-	return mageutil.TSProtosInDir(twitchchatWebDir, twitchchatDir)
+	return mageutil.TSProtosInDir(twitchchatWebDir, twitchchatDir, filepath.Join(twitchchatDir, "node_modules"))
 }
 
 func TwitchchatTypeScript() error {

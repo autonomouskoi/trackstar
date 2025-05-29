@@ -32,11 +32,11 @@ func StagelinqWebSrc() {
 func StagelinqGoProtos() error {
 	dest := filepath.Join(stagelinqDir, "stagelinq.pb.go")
 	src := filepath.Join(stagelinqDir, "stagelinq.proto")
-	return mageutil.GoProto(dest, src, stagelinqDir, "module=github.com/autonomouskoi/trackstar/stagelinq")
+	return mageutil.GoProto(dest, src, stagelinqDir, stagelinqDir, "module=github.com/autonomouskoi/trackstar/stagelinq")
 }
 func StagelinqTSProtos() error {
 	mg.Deps(StagelinqWebDir)
-	return mageutil.TSProtosInDir(stagelinqWebDir, stagelinqDir)
+	return mageutil.TSProtosInDir(stagelinqWebDir, stagelinqDir, filepath.Join(stagelinqDir, "node_modules"))
 }
 
 func StagelinqVersion() error {

@@ -5,7 +5,6 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
-	"log/slog"
 	"time"
 
 	_ "github.com/xeodou/go-sqlcipher"
@@ -14,6 +13,7 @@ import (
 	"github.com/autonomouskoi/akcore/bus"
 	"github.com/autonomouskoi/akcore/modules"
 	"github.com/autonomouskoi/akcore/modules/modutil"
+	"github.com/autonomouskoi/akcore/svc/log"
 	"github.com/autonomouskoi/trackstar"
 )
 
@@ -37,7 +37,7 @@ func init() {
 type RekordboxDB struct {
 	db  db
 	bus *bus.Bus
-	log *slog.Logger
+	log log.Logger
 }
 
 func (rbdb *RekordboxDB) Start(ctx context.Context, deps *modutil.ModuleDeps) error {

@@ -6,7 +6,6 @@ import (
 	_ "embed"
 	"encoding/xml"
 	"fmt"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,6 +16,7 @@ import (
 	"github.com/autonomouskoi/akcore/bus"
 	"github.com/autonomouskoi/akcore/modules"
 	"github.com/autonomouskoi/akcore/modules/modutil"
+	"github.com/autonomouskoi/akcore/svc/log"
 	"github.com/autonomouskoi/akcore/util/fsutil"
 	"github.com/autonomouskoi/trackstar"
 )
@@ -43,7 +43,7 @@ func init() {
 }
 
 type VirtualDJ struct {
-	log *slog.Logger
+	log log.Logger
 	bus *bus.Bus
 }
 

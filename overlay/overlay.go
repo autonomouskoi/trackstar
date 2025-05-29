@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	EnvLocalContentPath = "AK_TRACKSTAR_OVERLAY_CONTENT"
+	EnvLocalContentPath = "AK_CONTENT_TRACKSTAR_OVERLAY"
 )
 
 var (

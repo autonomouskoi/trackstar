@@ -7,6 +7,10 @@ const TOPIC_REQUEST = enumName(overlaypb.BusTopic, overlaypb.BusTopic.TRACKSTAR_
 
 function start(mainContainer: HTMLElement) {
     mainContainer.innerHTML = `
+<div>Overlay OBS Link: <a href="/m/trackstaroverlay/">
+    <img src="/OBS_Studio_Logo.svg" height="16" width="16" />
+</a></div>
+
 <h1>Trackstar Overlay Custom CSS</h1>
 <textarea id="custom-css"
     style="display: block"
@@ -30,7 +34,7 @@ function start(mainContainer: HTMLElement) {
         let start = customCSS.selectionStart;
         let end = customCSS.selectionEnd;
         customCSS.value = customCSS.value.substring(0, start) + '\t' + customCSS.value.substring(end);
-        customCSS.selectionStart = customCSS.selectionEnd = start+1;
+        customCSS.selectionStart = customCSS.selectionEnd = start + 1;
     });
 
     let colorLabel = mainContainer.querySelector('label') as HTMLLabelElement;
@@ -38,11 +42,11 @@ function start(mainContainer: HTMLElement) {
     colorInput.addEventListener('change', () => {
         if (!navigator.clipboard) {
             return;
-        } 
+        }
         navigator.clipboard.writeText(colorInput.value).then(() => {
             let originalText = colorLabel.innerText;
             colorLabel.innerText = 'Color copied!';
-            setTimeout(() => {colorLabel.innerText = originalText}, 5000);
+            setTimeout(() => { colorLabel.innerText = originalText }, 5000);
         });
     });
 

@@ -13,8 +13,6 @@ import (
 
 var (
 	baseDir          string
-	overlayDir       string
-	overlayWebDir    string
 	stagelinqDir     string
 	stagelinqWebDir  string
 	trackstarDir     string
@@ -33,8 +31,6 @@ func init() {
 	}
 	baseDir = filepath.Join(baseDir, "..")
 
-	overlayDir = filepath.Join(baseDir, "overlay")
-	overlayWebDir = filepath.Join(overlayDir, "web")
 	stagelinqDir = filepath.Join(baseDir, "stagelinq")
 	stagelinqWebDir = filepath.Join(stagelinqDir, "web")
 	trackstarDir = baseDir
@@ -45,8 +41,6 @@ func init() {
 
 func Clean() error {
 	for _, dir := range []string{
-		overlayWebDir,
-		overlayWebDir + ".zip",
 		stagelinqWebDir,
 		stagelinqWebDir + ".zip",
 		trackstarWebDir,
@@ -63,8 +57,6 @@ func Clean() error {
 
 func All() {
 	mg.Deps(
-		OverlayGoProtos,
-		OverlayWebZip,
 		StagelinqGoProtos,
 		StagelinqWebZip,
 		TrackstarGoProtos,
@@ -76,8 +68,6 @@ func All() {
 
 func Dev() {
 	mg.Deps(
-		OverlayGoProtos,
-		OverlayWebSrc,
 		StagelinqGoProtos,
 		StagelinqWebSrc,
 		TrackstarGoProtos,

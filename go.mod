@@ -5,7 +5,7 @@ go 1.23.0
 toolchain go1.23.4
 
 require (
-	github.com/autonomouskoi/akcore v0.1.2
+	github.com/autonomouskoi/akcore v0.1.3
 	github.com/autonomouskoi/datastruct v0.0.13
 	github.com/autonomouskoi/mageutil v0.0.18
 	github.com/autonomouskoi/twitch v0.0.21

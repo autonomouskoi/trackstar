@@ -145,12 +145,21 @@ func (sr sessionReader) adatHandler(trackCB func(Track)) {
 				}
 				t.Artist = str
 			case [4]byte{0, 0, 0, 0x1c}:
-				var start uint32
-				err := binary.Read(bytes.NewReader(rec.Data), binary.BigEndian, &start)
-				if err != nil {
-					return fmt.Errorf("reading start time: %w", err)
+				if rec.Length == 4 {
+					var start uint32
+					err := binary.Read(bytes.NewReader(rec.Data), binary.BigEndian, &start)
+					if err != nil {
+						return fmt.Errorf("reading start time: %w", err)
+					}
+					t.When = time.Unix(int64(start), 0)
+				} else if rec.Length == 8 {
+					var start uint64
+					err := binary.Read(bytes.NewReader(rec.Data), binary.BigEndian, &start)
+					if err != nil {
+						return fmt.Errorf("reading start time: %w", err)
+					}
+					t.When = time.Unix(int64(start), 0)
 				}
-				t.When = time.Unix(int64(start), 0)
 			}
 			return nil
 		}

@@ -398,7 +398,7 @@ func (sl *StagelinQ) handleState(device *stagelinq.Device, state *stagelinq.Stat
 		}
 		sl.bus.Send(&bus.BusMessage{
 			Topic:   trackstar.BusTopic_TRACKSTAR_EVENT.String(),
-			Type:    int32(trackstar.MessageTypeEvent_TRACKSTAR_EVENT_DECK_DISCOVERED),
+			Type:    int32(trackstar.MessageTypeEvent_DECK_DISCOVERED),
 			Message: b,
 		})
 		ds = &deckState{

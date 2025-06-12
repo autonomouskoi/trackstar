@@ -157,7 +157,7 @@ td {
 
     private _handleEvent(msg: buspb.BusMessage) {
         switch (msg.type) {
-            case tspb.MessageTypeEvent.TRACKSTAR_EVENT_TRACK_UPDATE:
+            case tspb.MessageTypeEvent.TRACK_UPDATE:
                 if (this._current_session != this._session_select.selectedOptions[0].value) {
                     // only append a track update if we're displaying the current session
                     return;
@@ -165,7 +165,7 @@ td {
                 let tu = tspb.TrackUpdate.fromBinary(msg.message);
                 this._addTrack(tu);
                 break;
-            case tspb.MessageTypeEvent.TRACKSTAR_EVENT_SESSION_UPDATE:
+            case tspb.MessageTypeEvent.SESSION_UPDATE:
                 // the entire session should be redisplayed
                 this._getSession(BigInt(0));
                 break;

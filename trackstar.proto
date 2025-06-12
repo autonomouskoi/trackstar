@@ -23,11 +23,11 @@ message Config {
 }
 
 enum MessageTypeEvent {
-    TRACKSTAR_EVENT_UNSPECIFIED       = 0;
-    TRACKSTAR_EVENT_DECK_DISCOVERED   = 1;
-    TRACKSTAR_EVENT_TRACK_UPDATE      = 2;
-    TRACKSTAR_EVENT_DECK_STYLE_UPDATE = 3;
-    TRACKSTAR_EVENT_SESSION_UPDATE    = 4;
+    UNSPECIFIED       = 0;
+    DECK_DISCOVERED   = 1;
+    TRACK_UPDATE      = 2;
+    DECK_STYLE_UPDATE = 3;
+    SESSION_UPDATE    = 4;
 }
 
 message DeckDiscovered {
@@ -61,18 +61,18 @@ message Session {
 message TracklogUpdateEvent {}
 
 enum MessageTypeRequest {
-    TRACKSTAR_REQUEST_GET_TRACK_REQ  = 0;
-    TRACKSTAR_REQUEST_GET_TRACK_RESP = 1;
-    SUBMIT_TRACK_REQ                 = 2;
-    SUBMIT_TRACK_RESP                = 3;
-    CONFIG_GET_REQ                   = 4;
-    CONFIG_GET_RESP                  = 5;
-    GET_SESSION_REQ                  = 6;
-    GET_SESSION_RESP                 = 7;
-    TAG_TRACK_REQ                    = 8;
-    TAG_TRACK_RESP                   = 9;
-    LIST_SESSIONS_REQ                = 10;
-    LIST_SESSIONS_RESP               = 11;
+    GET_TRACK_REQ      = 0;
+    GET_TRACK_RESP     = 1;
+    SUBMIT_TRACK_REQ   = 2;
+    SUBMIT_TRACK_RESP  = 3;
+    CONFIG_GET_REQ     = 4;
+    CONFIG_GET_RESP    = 5;
+    GET_SESSION_REQ    = 6;
+    GET_SESSION_RESP   = 7;
+    TAG_TRACK_REQ      = 8;
+    TAG_TRACK_RESP     = 9;
+    LIST_SESSIONS_REQ  = 10;
+    LIST_SESSIONS_RESP = 11;
 }
 
 message GetTrackRequest {

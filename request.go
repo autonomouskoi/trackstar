@@ -19,12 +19,12 @@ import (
 func (ts *Trackstar) handleRequests(ctx context.Context) error {
 	ts.bus.HandleTypes(ctx, BusTopic_TRACKSTAR_REQUEST.String(), 8,
 		map[int32]bus.MessageHandler{
-			int32(MessageTypeRequest_TRACKSTAR_REQUEST_GET_TRACK_REQ): ts.handleGetTrackRequest,
-			int32(MessageTypeRequest_SUBMIT_TRACK_REQ):                ts.handleRequestSubmitTrack,
-			int32(MessageTypeRequest_CONFIG_GET_REQ):                  ts.handleRequestConfigGet,
-			int32(MessageTypeRequest_GET_SESSION_REQ):                 ts.handleRequestGetSession,
-			int32(MessageTypeRequest_TAG_TRACK_REQ):                   ts.handleRequestTagTrack,
-			int32(MessageTypeRequest_LIST_SESSIONS_REQ):               ts.handleRequestListSessions,
+			int32(MessageTypeRequest_GET_TRACK_REQ):     ts.handleGetTrackRequest,
+			int32(MessageTypeRequest_SUBMIT_TRACK_REQ):  ts.handleRequestSubmitTrack,
+			int32(MessageTypeRequest_CONFIG_GET_REQ):    ts.handleRequestConfigGet,
+			int32(MessageTypeRequest_GET_SESSION_REQ):   ts.handleRequestGetSession,
+			int32(MessageTypeRequest_TAG_TRACK_REQ):     ts.handleRequestTagTrack,
+			int32(MessageTypeRequest_LIST_SESSIONS_REQ): ts.handleRequestListSessions,
 		},
 		nil,
 	)
@@ -111,7 +111,7 @@ func (ts *Trackstar) handleRequestSubmitTrack(msg *bus.BusMessage) *bus.BusMessa
 
 		tuMsg := &bus.BusMessage{
 			Topic: BusTopic_TRACKSTAR_EVENT.String(),
-			Type:  int32(MessageTypeEvent_TRACKSTAR_EVENT_TRACK_UPDATE),
+			Type:  int32(MessageTypeEvent_TRACK_UPDATE),
 		}
 		tuMsg.Message, _ = proto.Marshal(str.TrackUpdate)
 		ts.Log.Debug("sending track", "deck_id", str.TrackUpdate.DeckId,
@@ -191,7 +191,7 @@ func (ts *Trackstar) handleRequestTagTrack(msg *bus.BusMessage) *bus.BusMessage 
 	current.Tags = append(current.Tags, ttr.GetTag())
 	eventMsg := &bus.BusMessage{
 		Topic: BusTopic_TRACKSTAR_EVENT.String(),
-		Type:  int32(MessageTypeEvent_TRACKSTAR_EVENT_SESSION_UPDATE),
+		Type:  int32(MessageTypeEvent_SESSION_UPDATE),
 	}
 	reply.Error = ts.UnmarshalMessage(eventMsg, &TracklogUpdateEvent{})
 	ts.bus.Send(eventMsg)

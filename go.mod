@@ -5,7 +5,7 @@ go 1.23.0
 toolchain go1.23.4
 
 require (
-	github.com/autonomouskoi/akcore v0.1.3
+	github.com/autonomouskoi/akcore v0.1.5
 	github.com/autonomouskoi/datastruct v0.0.13
 	github.com/autonomouskoi/mageutil v0.0.18
 	github.com/icedream/go-stagelinq v1.0.0
@@ -13,9 +13,9 @@ require (
 	github.com/magefile/mage v1.15.0
 	github.com/stretchr/testify v1.10.0
 	github.com/xeodou/go-sqlcipher v0.0.0-20200727080346-d681773ef093
-	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67
-	golang.org/x/sync v0.14.0
-	golang.org/x/text v0.25.0
+	golang.org/x/exp v0.0.0-20250606033433-dcc06ee1d476
+	golang.org/x/sync v0.15.0
+	golang.org/x/text v0.26.0
 	google.golang.org/protobuf v1.36.6
 )
 
@@ -40,8 +40,8 @@ require (
 	go.opentelemetry.io/otel v1.36.0 // indirect
 	go.opentelemetry.io/otel/metric v1.36.0 // indirect
 	go.opentelemetry.io/otel/trace v1.36.0 // indirect
-	go.opentelemetry.io/proto/otlp v1.6.0 // indirect
-	golang.org/x/net v0.40.0 // indirect
+	go.opentelemetry.io/proto/otlp v1.7.0 // indirect
+	golang.org/x/net v0.41.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

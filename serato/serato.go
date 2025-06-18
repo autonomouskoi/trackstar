@@ -70,7 +70,8 @@ func (s *Serato) handleTrack(t Track) {
 	}
 	str := &trackstar.SubmitTrackRequest{
 		TrackUpdate: &trackstar.TrackUpdate{
-			When: time.Now().Unix(),
+			DeckId: "Serato",
+			When:   time.Now().Unix(),
 			Track: &trackstar.Track{
 				Artist: t.Artist,
 				Title:  t.Title,
@@ -157,11 +158,7 @@ func (sf *sessionFile) watch(ctx context.Context) error {
 				sf.handleTrack(track)
 			}
 		}
-		sf.log.Debug("session not newer",
-			"path", sessionPath,
-			"than", sf.mod,
-			"modified", stat.ModTime(),
-		)
+		sf.mod = time.Now()
 
 		select {
 		case <-ctx.Done():
@@ -178,7 +175,9 @@ func (sf *sessionFile) getLatestTrack(fileName string) (Track, error) {
 		return latest, fmt.Errorf("opening session: %w", err)
 	}
 	defer infh.Close()
-	if _, err := infh.Seek(int64(sf.offset), io.SeekStart); err != nil {
+
+	sf.log.Debug("seeking offset", "offset", sf.offset)
+	if _, err := infh.Seek(sf.offset, io.SeekStart); err != nil {
 		return latest, fmt.Errorf("seeking: %w", err)
 	}
 
@@ -191,6 +190,7 @@ func (sf *sessionFile) getLatestTrack(fileName string) (Track, error) {
 		if err != nil {
 			return latest, fmt.Errorf("getting offset: %w", err)
 		}
+		sf.log.Debug("new offset", "offset", sf.offset)
 	}
 	return latest, nil
 }

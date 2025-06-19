@@ -12,13 +12,11 @@ import (
 )
 
 var (
-	baseDir          string
-	stagelinqDir     string
-	stagelinqWebDir  string
-	trackstarDir     string
-	trackstarWebDir  string
-	twitchchatDir    string
-	twitchchatWebDir string
+	baseDir         string
+	stagelinqDir    string
+	stagelinqWebDir string
+	trackstarDir    string
+	trackstarWebDir string
 )
 
 var Default = All
@@ -35,16 +33,12 @@ func init() {
 	stagelinqWebDir = filepath.Join(stagelinqDir, "web")
 	trackstarDir = baseDir
 	trackstarWebDir = filepath.Join(trackstarDir, "web")
-	twitchchatDir = filepath.Join(baseDir, "twitchchat")
-	twitchchatWebDir = filepath.Join(twitchchatDir, "web")
 }
 
 func Clean() error {
 	for _, dir := range []string{
 		stagelinqWebDir,
 		stagelinqWebDir + ".zip",
-		trackstarWebDir,
-		trackstarWebDir + ".zip",
 		trackstarWebDir,
 		trackstarWebDir + ".zip",
 	} {
@@ -61,8 +55,6 @@ func All() {
 		StagelinqWebZip,
 		TrackstarGoProtos,
 		TrackstarWebZip,
-		TwitchchatGoProtos,
-		TwitchchatWebZip,
 	)
 }
 
@@ -72,7 +64,5 @@ func Dev() {
 		StagelinqWebSrc,
 		TrackstarGoProtos,
 		TrackstarWebSrc,
-		TwitchchatGoProtos,
-		TwitchchatWebSrc,
 	)
 }

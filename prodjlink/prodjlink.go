@@ -19,6 +19,7 @@ import (
 func init() {
 	manifest := &modules.Manifest{
 		Id:          "371b0b412d302cfd",
+		Version:     "0.0.1",
 		Title:       "TS: Pro DJ Link (Experimental)",
 		Name:        "trackstarprodjlink",
 		Description: "Retrieve real-time track information from Pro DJ Link capable Pioneer/AlphaTheta devices",

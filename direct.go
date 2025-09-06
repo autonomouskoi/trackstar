@@ -5,12 +5,13 @@ import (
 	"time"
 
 	"github.com/autonomouskoi/akcore/bus"
+	svc "github.com/autonomouskoi/akcore/svc/pb"
 )
 
 func (ts *Trackstar) handleDirect(ctx context.Context) error {
 	ts.bus.HandleTypes(ctx, moduleID, 4,
 		map[int32]bus.MessageHandler{
-			int32(bus.MessageTypeDirect_WEBHOOK_CALL_REQ): ts.handleDirectWebhookCall,
+			int32(svc.MessageType_WEBHOOK_CALL_EVENT): ts.handleDirectWebhookCall,
 		},
 		nil,
 	)
@@ -18,22 +19,22 @@ func (ts *Trackstar) handleDirect(ctx context.Context) error {
 }
 
 func (ts *Trackstar) handleDirectWebhookCall(msg *bus.BusMessage) *bus.BusMessage {
-	wcr := &bus.WebhookCallRequest{}
-	if err := ts.UnmarshalMessage(msg, wcr); err != nil {
+	wce := &svc.WebhookCallEvent{}
+	if err := ts.UnmarshalMessage(msg, wce); err != nil {
 		return nil
 	}
-	action := wcr.GetParam("action")
+	action := wce.GetParam("action")
 	switch action {
 	case "add_tag":
-		ts.webhookCallAddTag(wcr)
+		ts.webhookCallAddTag(wce)
 	default:
 		ts.Log.Error("invalid webhook action", "action", action)
 	}
 	return nil
 }
 
-func (ts *Trackstar) webhookCallAddTag(wcr *bus.WebhookCallRequest) {
-	tag := wcr.GetParam("tag")
+func (ts *Trackstar) webhookCallAddTag(wce *svc.WebhookCallEvent) {
+	tag := wce.GetParam("tag")
 	if tag == "" {
 		return
 	}

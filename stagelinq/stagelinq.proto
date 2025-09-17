@@ -9,18 +9,15 @@ enum BusTopics {
     STAGELINQ_COMMAND = 2;
 }
 
-enum MessageType {
-    TYPE_UNSPECIFIED                = 0;
-    TYPE_CAPTURE_THRESHOLD_REQUEST  = 1;
-    TYPE_GET_THRESHOLD_REQUEST      = 2;
-    TYPE_THRESHOLD_UPDATE           = 3;
-    TYPE_GET_DEVICES_REQUEST        = 4;
-    TYPE_GET_DEVICES_RESPONSE       = 5;
-}
-
 message Config {
     double  fader_threshold = 1;
 }
+
+enum MessageTypeEvent {
+    DEVICE_STATE = 0;
+}
+
+
 
 enum MessageTypeRequest {
     CONFIG_GET_REQ         = 0;
@@ -69,4 +66,5 @@ message Device {
              string   software_name    = 3;
              string   software_verison = 4;
     repeated Service  services         = 5;
+             string   token            = 6;
 }

@@ -115,7 +115,7 @@ var stateValues = []string{
 }
 
 var (
-	supportedDeviceNames = mapset.From("prime4", "sc5000", "sc6000")
+	supportedDeviceNames = mapset.From("prime4", "prime4+", "sc5000", "sc6000")
 	supportedSoftwares   = mapset.From("JC11", "JP07")
 )
 
@@ -268,17 +268,19 @@ func (sl *StagelinQ) discover(ctx context.Context) {
 	if device == nil {
 		return
 	}
+	if sl.discovered.haveFound(device) {
+		return
+	}
 	if deviceState != stagelinq.DevicePresent {
 		sl.Log.Debug("discovered non-present device", "state", deviceState, "address", device.IP)
 		return
 	}
 	if !supportedDeviceNames.Has(device.Name) {
+		sl.Log.Debug("unsupported device", "name", device.Name)
 		return
 	}
 	if !supportedSoftwares.Has(device.SoftwareName) {
-		return
-	}
-	if sl.discovered.haveFound(device) {
+		sl.Log.Debug("unsupported software", "software_name", device.SoftwareName)
 		return
 	}
 	sl.Go(func() error {

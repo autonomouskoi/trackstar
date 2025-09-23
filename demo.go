@@ -4,8 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/autonomouskoi/akcore/bus"
 	"golang.org/x/exp/rand"
+
+	"github.com/autonomouskoi/akcore/bus"
+	"github.com/autonomouskoi/trackstar/pb"
 )
 
 var demoArtists = []string{
@@ -50,19 +52,19 @@ func (ts *Trackstar) demoMode() {
 			case <-ctx.Done():
 				return
 			case <-t.C:
-				tu := &TrackUpdate{
+				tu := &pb.TrackUpdate{
 					When:   time.Now().Unix(),
 					DeckId: "Demo",
-					Track:  &Track{},
+					Track:  &pb.Track{},
 				}
-				str := &SubmitTrackRequest{
+				str := &pb.SubmitTrackRequest{
 					TrackUpdate: tu,
 				}
 				tu.Track.Artist = demoArtists[rand.Intn(len(demoArtists))]
 				tu.Track.Title = demoTitles[rand.Intn(len(demoTitles))]
 				msg := &bus.BusMessage{
-					Topic: BusTopic_TRACKSTAR_REQUEST.String(),
-					Type:  int32(MessageTypeRequest_SUBMIT_TRACK_REQ),
+					Topic: pb.BusTopic_TRACKSTAR_REQUEST.String(),
+					Type:  int32(pb.MessageTypeRequest_SUBMIT_TRACK_REQ),
 				}
 				ts.MarshalMessage(msg, str)
 				_ = ts.bus.WaitForReply(ctx, msg)

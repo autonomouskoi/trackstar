@@ -23,7 +23,7 @@ import (
 	"github.com/autonomouskoi/akcore/storage/kv"
 	"github.com/autonomouskoi/akcore/web/webutil"
 	"github.com/autonomouskoi/datastruct/mapset"
-	"github.com/autonomouskoi/trackstar"
+	trackstar "github.com/autonomouskoi/trackstar/pb"
 )
 
 const (

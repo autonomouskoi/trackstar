@@ -14,17 +14,18 @@ import (
 
 	"github.com/autonomouskoi/akcore"
 	"github.com/autonomouskoi/akcore/bus"
+	"github.com/autonomouskoi/trackstar/pb"
 )
 
 func (ts *Trackstar) handleRequests(ctx context.Context) error {
-	ts.bus.HandleTypes(ctx, BusTopic_TRACKSTAR_REQUEST.String(), 8,
+	ts.bus.HandleTypes(ctx, pb.BusTopic_TRACKSTAR_REQUEST.String(), 8,
 		map[int32]bus.MessageHandler{
-			int32(MessageTypeRequest_GET_TRACK_REQ):     ts.handleGetTrackRequest,
-			int32(MessageTypeRequest_SUBMIT_TRACK_REQ):  ts.handleRequestSubmitTrack,
-			int32(MessageTypeRequest_CONFIG_GET_REQ):    ts.handleRequestConfigGet,
-			int32(MessageTypeRequest_GET_SESSION_REQ):   ts.handleRequestGetSession,
-			int32(MessageTypeRequest_TAG_TRACK_REQ):     ts.handleRequestTagTrack,
-			int32(MessageTypeRequest_LIST_SESSIONS_REQ): ts.handleRequestListSessions,
+			int32(pb.MessageTypeRequest_GET_TRACK_REQ):     ts.handleGetTrackRequest,
+			int32(pb.MessageTypeRequest_SUBMIT_TRACK_REQ):  ts.handleRequestSubmitTrack,
+			int32(pb.MessageTypeRequest_CONFIG_GET_REQ):    ts.handleRequestConfigGet,
+			int32(pb.MessageTypeRequest_GET_SESSION_REQ):   ts.handleRequestGetSession,
+			int32(pb.MessageTypeRequest_TAG_TRACK_REQ):     ts.handleRequestTagTrack,
+			int32(pb.MessageTypeRequest_LIST_SESSIONS_REQ): ts.handleRequestListSessions,
 		},
 		nil,
 	)
@@ -36,7 +37,7 @@ func (ts *Trackstar) handleGetTrackRequest(msg *bus.BusMessage) *bus.BusMessage 
 		Topic: msg.GetTopic(),
 		Type:  msg.Type + 1,
 	}
-	gtr := &GetTrackRequest{}
+	gtr := &pb.GetTrackRequest{}
 	if reply.Error = ts.UnmarshalMessage(msg, gtr); reply.Error != nil {
 		return reply
 	}
@@ -50,7 +51,7 @@ func (ts *Trackstar) handleGetTrackRequest(msg *bus.BusMessage) *bus.BusMessage 
 		return reply
 	}
 	when := time.Now().Add(-time.Second * time.Duration(gtr.DeltaSeconds)).Unix()
-	gtResp := &GetTrackResponse{
+	gtResp := &pb.GetTrackResponse{
 		TrackUpdate: ts.session.Tracks[0],
 	}
 	for _, tu := range ts.session.Tracks[1:] {
@@ -66,7 +67,7 @@ func (ts *Trackstar) handleGetTrackRequest(msg *bus.BusMessage) *bus.BusMessage 
 var bracketRE = regexp.MustCompile(`\[.*\]`)
 var multispaceRE = regexp.MustCompile(`\s{2,}`)
 
-func (ts *Trackstar) mungeTrackUpdate(tu *TrackUpdate) {
+func (ts *Trackstar) mungeTrackUpdate(tu *pb.TrackUpdate) {
 	for match, replace := range ts.cfg.TrackReplacements {
 		if strings.TrimSpace(match) == "" {
 			continue
@@ -85,6 +86,7 @@ func (ts *Trackstar) mungeTrackUpdate(tu *TrackUpdate) {
 	}
 	tu.Track.Artist = strings.TrimSpace(tu.Track.Artist)
 	tu.Track.Title = strings.TrimSpace(tu.Track.Title)
+	tu.Index = int32(len(ts.session.GetTracks()) + 1)
 }
 
 func (ts *Trackstar) handleRequestSubmitTrack(msg *bus.BusMessage) *bus.BusMessage {
@@ -92,7 +94,7 @@ func (ts *Trackstar) handleRequestSubmitTrack(msg *bus.BusMessage) *bus.BusMessa
 		Topic: msg.Topic,
 		Type:  msg.Type + 1,
 	}
-	str := &SubmitTrackRequest{}
+	str := &pb.SubmitTrackRequest{}
 	if reply.Error = ts.UnmarshalMessage(msg, str); reply.Error != nil {
 		return reply
 	}
@@ -110,8 +112,8 @@ func (ts *Trackstar) handleRequestSubmitTrack(msg *bus.BusMessage) *bus.BusMessa
 		}
 
 		tuMsg := &bus.BusMessage{
-			Topic: BusTopic_TRACKSTAR_EVENT.String(),
-			Type:  int32(MessageTypeEvent_TRACK_UPDATE),
+			Topic: pb.BusTopic_TRACKSTAR_EVENT.String(),
+			Type:  int32(pb.MessageTypeEvent_TRACK_UPDATE),
 		}
 		tuMsg.Message, _ = proto.Marshal(str.TrackUpdate)
 		ts.Log.Debug("sending track", "deck_id", str.TrackUpdate.DeckId,
@@ -121,7 +123,7 @@ func (ts *Trackstar) handleRequestSubmitTrack(msg *bus.BusMessage) *bus.BusMessa
 		ts.bus.Send(tuMsg)
 	}()
 
-	ts.MarshalMessage(reply, &SubmitTrackResponse{})
+	ts.MarshalMessage(reply, &pb.SubmitTrackResponse{})
 	return reply
 }
 
@@ -131,7 +133,7 @@ func (ts *Trackstar) handleRequestConfigGet(msg *bus.BusMessage) *bus.BusMessage
 		Type:  msg.Type + 1,
 	}
 	ts.lock.Lock()
-	ts.MarshalMessage(reply, &ConfigGetResponse{
+	ts.MarshalMessage(reply, &pb.ConfigGetResponse{
 		Config: ts.cfg,
 	})
 	ts.lock.Unlock()
@@ -143,7 +145,7 @@ func (ts *Trackstar) handleRequestGetSession(msg *bus.BusMessage) *bus.BusMessag
 		Topic: msg.GetTopic(),
 		Type:  msg.Type + 1,
 	}
-	req := &GetSessionRequest{}
+	req := &pb.GetSessionRequest{}
 	if reply.Error = ts.UnmarshalMessage(msg, req); reply.Error != nil {
 		return reply
 	}
@@ -151,7 +153,7 @@ func (ts *Trackstar) handleRequestGetSession(msg *bus.BusMessage) *bus.BusMessag
 	defer ts.lock.Unlock()
 	session := ts.session
 	if req.Session != 0 && req.Session != ts.session.Started {
-		session = &Session{}
+		session = &pb.Session{}
 		err := ts.kv.GetProto([]byte(fmt.Sprintf("%s%d", sessionPrefix, req.Session)), session)
 		if err != nil {
 			if errors.Is(err, akcore.ErrNotFound) {
@@ -162,7 +164,7 @@ func (ts *Trackstar) handleRequestGetSession(msg *bus.BusMessage) *bus.BusMessag
 			return reply
 		}
 	}
-	ts.MarshalMessage(reply, &GetSessionResponse{
+	ts.MarshalMessage(reply, &pb.GetSessionResponse{
 		Session: session,
 	})
 	return reply
@@ -179,21 +181,21 @@ func (ts *Trackstar) handleRequestTagTrack(msg *bus.BusMessage) *bus.BusMessage 
 		reply.Error = &bus.Error{Code: int32(bus.CommonErrorCode_NOT_FOUND)}
 		return reply
 	}
-	ttr := &TagTrackRequest{}
+	ttr := &pb.TagTrackRequest{}
 	if reply.Error = ts.UnmarshalMessage(msg, ttr); reply.Error != nil {
 		return reply
 	}
-	if !slices.ContainsFunc(ts.cfg.Tags, func(t *TrackTagConfig) bool { return t.Tag == ttr.Tag.GetTag() }) {
+	if !slices.ContainsFunc(ts.cfg.Tags, func(t *pb.TrackTagConfig) bool { return t.Tag == ttr.Tag.GetTag() }) {
 		reply.Error = &bus.Error{Code: int32(bus.CommonErrorCode_NOT_FOUND)}
 		return reply
 	}
 	current := ts.session.Tracks[len(ts.session.Tracks)-1]
 	current.Tags = append(current.Tags, ttr.GetTag())
 	eventMsg := &bus.BusMessage{
-		Topic: BusTopic_TRACKSTAR_EVENT.String(),
-		Type:  int32(MessageTypeEvent_SESSION_UPDATE),
+		Topic: pb.BusTopic_TRACKSTAR_EVENT.String(),
+		Type:  int32(pb.MessageTypeEvent_SESSION_UPDATE),
 	}
-	reply.Error = ts.UnmarshalMessage(eventMsg, &TracklogUpdateEvent{})
+	reply.Error = ts.UnmarshalMessage(eventMsg, &pb.TracklogUpdateEvent{})
 	ts.bus.Send(eventMsg)
 	return reply
 }
@@ -210,7 +212,7 @@ func (ts *Trackstar) handleRequestListSessions(msg *bus.BusMessage) *bus.BusMess
 		}
 		return reply
 	}
-	resp := &ListSessionsResponse{}
+	resp := &pb.ListSessionsResponse{}
 	for _, key := range keys {
 		idStr := strings.TrimPrefix(string(key), sessionPrefix)
 		sessionID, err := strconv.ParseInt(idStr, 10, 64)

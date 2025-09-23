@@ -15,7 +15,7 @@ import (
 	"github.com/autonomouskoi/akcore/modules"
 	"github.com/autonomouskoi/akcore/modules/modutil"
 	"github.com/autonomouskoi/akcore/svc/log"
-	"github.com/autonomouskoi/trackstar"
+	trackstar "github.com/autonomouskoi/trackstar/pb"
 )
 
 func init() {

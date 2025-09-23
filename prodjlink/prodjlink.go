@@ -13,7 +13,7 @@ import (
 	"github.com/autonomouskoi/akcore/bus"
 	"github.com/autonomouskoi/akcore/modules"
 	"github.com/autonomouskoi/akcore/modules/modutil"
-	"github.com/autonomouskoi/trackstar"
+	trackstar "github.com/autonomouskoi/trackstar/pb"
 )
 
 func init() {

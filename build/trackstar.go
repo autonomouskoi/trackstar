@@ -29,7 +29,7 @@ func TrackstarWebSrc() {
 }
 
 func TrackstarGoProtos() error {
-	dest := filepath.Join(trackstarDir, "trackstar.pb.go")
+	dest := filepath.Join(trackstarDir, "pb", "trackstar.pb.go")
 	src := filepath.Join(trackstarDir, "trackstar.proto")
 	return mageutil.GoProto(dest, src, trackstarDir, trackstarDir, "module=github.com/autonomouskoi/trackstar")
 }

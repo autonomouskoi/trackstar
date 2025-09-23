@@ -13,7 +13,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 
-	"github.com/autonomouskoi/trackstar"
+	trackstar "github.com/autonomouskoi/trackstar/pb"
 )
 
 const (

@@ -18,7 +18,7 @@ import (
 	"github.com/autonomouskoi/akcore/modules/modutil"
 	"github.com/autonomouskoi/akcore/svc/log"
 	"github.com/autonomouskoi/akcore/util/fsutil"
-	"github.com/autonomouskoi/trackstar"
+	trackstar "github.com/autonomouskoi/trackstar/pb"
 )
 
 const (

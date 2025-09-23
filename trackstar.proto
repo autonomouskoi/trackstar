@@ -1,7 +1,7 @@
 syntax = "proto3";
-package trackstar;
+package pb;
 
-option go_package = "github.com/autonomouskoi/trackstar";
+option go_package = "github.com/autonomouskoi/trackstar/pb";
 
 enum BusTopic {
     TRACKSTAR_EVENT   = 0;
@@ -46,6 +46,7 @@ message TrackUpdate {
               Track           track   = 2;
               int64           when    = 3; 
     repeated  TrackUpdateTag  tags    = 4;
+              int32           index   = 5;
 }
 
 message Track {

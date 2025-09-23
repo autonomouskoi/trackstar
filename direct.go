@@ -6,6 +6,7 @@ import (
 
 	"github.com/autonomouskoi/akcore/bus"
 	svc "github.com/autonomouskoi/akcore/svc/pb"
+	pb "github.com/autonomouskoi/trackstar/pb"
 )
 
 func (ts *Trackstar) handleDirect(ctx context.Context) error {
@@ -39,11 +40,11 @@ func (ts *Trackstar) webhookCallAddTag(wce *svc.WebhookCallEvent) {
 		return
 	}
 	msg := &bus.BusMessage{
-		Topic: BusTopic_TRACKSTAR_REQUEST.String(),
-		Type:  int32(MessageTypeRequest_TAG_TRACK_REQ),
+		Topic: pb.BusTopic_TRACKSTAR_REQUEST.String(),
+		Type:  int32(pb.MessageTypeRequest_TAG_TRACK_REQ),
 	}
-	ts.MarshalMessage(msg, &TagTrackRequest{
-		Tag: &TrackUpdateTag{
+	ts.MarshalMessage(msg, &pb.TagTrackRequest{
+		Tag: &pb.TrackUpdateTag{
 			When:      time.Now().Unix(),
 			FromId:    "0",
 			FromLogin: "_webhook",

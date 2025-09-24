@@ -3,7 +3,6 @@ package stagelinq
 import (
 	"context"
 	_ "embed"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
@@ -32,6 +31,11 @@ const (
 	timeout    = time.Second * 5
 
 	EnvLocalContentPath = "AK_CONTENT_TRACKSTAR_STAGELINQ"
+)
+
+var (
+	supportedDeviceNames = mapset.From("prime2", "prime4", "prime4+", "sc5000", "sc6000")
+	supportedSoftwares   = mapset.From("JC11", "JP07")
 )
 
 //go:embed web.zip
@@ -114,11 +118,6 @@ var stateValues = []string{
 	stagelinq.EngineDeck4.TrackTrackName(),
 }
 
-var (
-	supportedDeviceNames = mapset.From("prime4", "sc5000", "sc6000")
-	supportedSoftwares   = mapset.From("JC11", "JP07")
-)
-
 func makeStateMap() map[string]bool {
 	retval := map[string]bool{}
 	for _, value := range stateValues {
@@ -147,13 +146,13 @@ type deckState struct {
 type StagelinQ struct {
 	http.Handler
 	modutil.ModuleBase
-	bus        *bus.Bus
-	listener   *stagelinq.Listener
-	lock       sync.Mutex
-	discovered *discovered
-	deckStates map[string]*deckState
-	cfg        *Config
-	kv         kv.KVPrefix
+	bus          *bus.Bus
+	listener     *stagelinq.Listener
+	lock         sync.Mutex
+	deviceStates *deviceStates
+	deckStates   map[string]*deckState
+	cfg          *Config
+	kv           kv.KVPrefix
 }
 
 func (sl *StagelinQ) Start(ctx context.Context, deps *modutil.ModuleDeps) error {
@@ -203,7 +202,7 @@ func (sl *StagelinQ) Start(ctx context.Context, deps *modutil.ModuleDeps) error 
 
 func (sl *StagelinQ) start(ctx context.Context) error {
 	var err error
-	sl.discovered = &discovered{}
+	sl.deviceStates = newDeviceStates(sl.bus, sl.Log)
 	maps.Clear(sl.deckStates)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -268,42 +267,57 @@ func (sl *StagelinQ) discover(ctx context.Context) {
 	if device == nil {
 		return
 	}
+	tsDevice, isNew := sl.deviceStates.discovered(device)
+	if !isNew {
+		return
+	}
 	if deviceState != stagelinq.DevicePresent {
 		sl.Log.Debug("discovered non-present device", "state", deviceState, "address", device.IP)
 		return
 	}
 	if !supportedDeviceNames.Has(device.Name) {
+		sl.deviceStates.update(tsDevice.GetToken(),
+			DeviceStatus_DEVICE_STATUS_UNSUPPORTED,
+			"unsupported hardware",
+		)
+		sl.Log.Debug("unsupported device", "name", device.Name)
 		return
 	}
 	if !supportedSoftwares.Has(device.SoftwareName) {
-		return
-	}
-	if sl.discovered.haveFound(device) {
+		sl.deviceStates.update(tsDevice.GetToken(),
+			DeviceStatus_DEVICE_STATUS_UNSUPPORTED,
+			"unsupported software",
+		)
+		sl.Log.Debug("unsupported software", "software_name", device.SoftwareName)
 		return
 	}
 	sl.Go(func() error {
 		if err := sl.handleDevice(ctx, device); err != nil {
 			sl.Log.Error("handling device", "error", err.Error())
+			sl.deviceStates.error(tsDevice.GetToken(), tsDevice.StatusDetail+": will retry")
 		}
 		return nil
 	})
 }
 
-func (sl *StagelinQ) handleDevice(ctx context.Context, device *stagelinq.Device) error {
-	token := sl.listener.Token()
-	sl.Log.Debug("handling device", "token", hex.EncodeToString(token[:]))
-	deviceConn, err := device.Connect(token, []*stagelinq.Service{})
+func (sl *StagelinQ) handleDevice(ctx context.Context, slDevice *stagelinq.Device) error {
+	deviceToken := slDeviceToken(slDevice)
+	sl.deviceStates.update(deviceToken, DeviceStatus_DEVICE_STATUS_CONNECTING, "Connecting...")
+	deviceConn, err := slDevice.Connect(sl.listener.Token(), []*stagelinq.Service{})
 	if err != nil {
+		sl.deviceStates.error(deviceToken, "Connecting: "+err.Error())
 		return fmt.Errorf("connecting to device: %w", err)
 	}
 	defer deviceConn.Close()
+	sl.deviceStates.update(deviceToken, DeviceStatus_DEVICE_STATUS_INITIAL_CONNECT, "")
 
 	retryDelay := time.Millisecond * 50
 	var services []*stagelinq.Service
 	for i := 0; i < 6; i++ {
-		sl.Log.Debug("requesting data services", "ip", device.IP)
+		sl.Log.Debug("requesting data services", "ip", slDevice.IP, "token", deviceToken)
 		services, err = deviceConn.RequestServices()
 		if err != nil {
+			sl.deviceStates.error(deviceToken, "Requesting services: "+err.Error())
 			return fmt.Errorf("requesting services: %w", err)
 		}
 		if len(services) > 0 {
@@ -313,10 +327,11 @@ func (sl *StagelinQ) handleDevice(ctx context.Context, device *stagelinq.Device)
 		retryDelay *= 2
 	}
 	if len(services) == 0 {
+		sl.deviceStates.error(deviceToken, "no services discovered")
 		return errors.New("no services discovered")
 	}
 
-	sl.discovered.setServices(device, services)
+	sl.deviceStates.setServices(deviceToken, services)
 
 	for _, service := range services {
 		sl.Log.Debug("service offer",
@@ -327,11 +342,13 @@ func (sl *StagelinQ) handleDevice(ctx context.Context, device *stagelinq.Device)
 			continue
 		}
 		smh := stateMapHandler{
-			device:  device,
-			service: service,
-			token:   token,
+			slDevice:      slDevice,
+			deviceToken:   deviceToken,
+			service:       service,
+			listenerToken: sl.listener.Token(),
 		}
 		if err := sl.handleStateMap(ctx, smh); err != nil {
+			sl.deviceStates.error(deviceToken, "Handling StateMap: "+err.Error())
 			sl.Log.Error("handling StateMap", "err", err.Error())
 		}
 	}
@@ -341,21 +358,25 @@ func (sl *StagelinQ) handleDevice(ctx context.Context, device *stagelinq.Device)
 }
 
 type stateMapHandler struct {
-	device  *stagelinq.Device
-	service *stagelinq.Service
-	token   stagelinq.Token
+	slDevice      *stagelinq.Device
+	service       *stagelinq.Service
+	deviceToken   string
+	listenerToken stagelinq.Token
 }
 
 func (sl *StagelinQ) handleStateMap(ctx context.Context, smh stateMapHandler) error {
 	sl.Log.Debug("handling state map")
 	defer maps.Clear(sl.deckStates)
-	stateMapTCPConn, err := smh.device.Dial(smh.service.Port)
+	deviceToken := smh.deviceToken
+	stateMapTCPConn, err := smh.slDevice.Dial(smh.service.Port)
 	if err != nil {
+		sl.deviceStates.error(deviceToken, "creating stateMapTCPConn: "+err.Error())
 		return fmt.Errorf("creating stateMapTCPConn: %w", err)
 	}
 	defer stateMapTCPConn.Close()
-	stateMapConn, err := stagelinq.NewStateMapConnection(stateMapTCPConn, smh.token)
+	stateMapConn, err := stagelinq.NewStateMapConnection(stateMapTCPConn, smh.listenerToken)
 	if err != nil {
+		sl.deviceStates.error(deviceToken, "creating stateMapConn: "+err.Error())
 		return fmt.Errorf("creating stateMapConn: %w", err)
 	}
 
@@ -363,6 +384,7 @@ func (sl *StagelinQ) handleStateMap(ctx context.Context, smh stateMapHandler) er
 	for _, stateValue := range stateValues {
 		stateMapConn.Subscribe(stateValue)
 	}
+	sl.deviceStates.update(deviceToken, DeviceStatus_DEVICE_STATUS_READY, "Let's Rock!")
 	for {
 		select {
 		case <-ctx.Done():
@@ -370,7 +392,7 @@ func (sl *StagelinQ) handleStateMap(ctx context.Context, smh stateMapHandler) er
 		case err := <-stateMapConn.ErrorC():
 			return fmt.Errorf("in state map connection: %w", err)
 		case state := <-stateMapConn.StateC():
-			sl.handleState(smh.device, state)
+			sl.handleState(smh.slDevice, state)
 			m[state.Name] = true
 			if allStateValuesReceived(m) {
 				return nil

@@ -3,12 +3,15 @@ import * as buspb from "/pb/bus/bus_pb.js";
 import * as slpb from "/m/trackstarstagelinq/pb/stagelinq_pb.js";
 import { ControlPanel } from "/tk.js";
 
+const TOPIC_EVENT = enumName(slpb.BusTopics, slpb.BusTopics.STAGELINQ_EVENT);
 const TOPIC_REQUEST = enumName(slpb.BusTopics, slpb.BusTopics.STAGELINQ_REQUEST);
 
 let help = document.createElement('div');
 help.innerHTML = `Devices detected by <code>trackstarstagelinq</code> are shown here.`;
 
 class Devices extends ControlPanel {
+    private _devices: { [key: string]: slpb.Device } = {};
+
     constructor() {
         super({ title: 'Detected Devices', help });
 
@@ -25,54 +28,60 @@ class Devices extends ControlPanel {
                 }))
             }).then((reply) => {
                 let resp = slpb.GetDevicesResponse.fromBinary(reply.message);
-                this.update(resp.devices);
+                resp.devices.forEach((device) => this._devices[device.token] = device);
+                bus.subscribe(TOPIC_EVENT, (msg) => this._handleEvent(msg));
+                this._render();
             });
     }
 
-    update(devices: slpb.Device[]) {
+    private _handleEvent(msg: buspb.BusMessage) {
+        if (msg.type != slpb.MessageTypeEvent.DEVICE_STATE) {
+            return;
+        }
+        let event = slpb.DeviceStateEvent.fromBinary(msg.message);
+        this._devices[event.device.token] = event.device;
+        this._render();
+    }
+
+    private _render() {
         this.innerHTML = '';
-        devices.forEach((device) => this.appendChild(new StagelinQDevice(device)));
+        Object.keys(this._devices).toSorted().forEach((token) =>
+            this.appendChild(new StagelinQDevice(this._devices[token]))
+        );
     }
 }
 customElements.define('trackstar-stagelinq-devices', Devices, { extends: 'fieldset' });
 
-class StagelinQDevice extends HTMLElement {
+class StagelinQDevice extends HTMLFieldSetElement {
     private _device: slpb.Device;
 
     constructor(device: slpb.Device) {
         super();
-        this.attachShadow({ mode: 'open' });
+        this.style.display = 'inline-block';
         this.device = device;
     }
 
     set device(device: slpb.Device) {
         this._device = device;
-        let trackData = this._device.services.some((svc) => {
-            return svc.name == 'StateMap';
-        })
-        this.shadowRoot!.innerHTML = `
-<style>
-fieldset {
-    width: fit-content;
-    display: grid;
-    grid-template-columns: auto auto;
-    column-gap: 1rem;
-}
-</style>
-<fieldset>
-        <legend>IP: ${this._device.ip}</legend>
-        <div>Name</div>
-        <div>${this._device.name}</div>
-        <div>Software Name</div>
-        <div>${this._device.softwareName}</div>
-        <div>Software Version</div>
-        <div>${this._device.softwareVerison}</div>
-        <div>Track Data</div>
-        <div>${trackData ? "&#x2705;" : "&#x274C"}</div>
-</fieldset>
+        this.innerHTML = `
+<legend>Token: ${this._device.token}</legend>
+<div class="grid-2-col">
+    <label>Status</label>
+    <div>${enumName(slpb.DeviceStatus, this._device.status)}</div>
+    <label>Status Detail</label>
+    <div>${this._device.statusDetail}</div>
+    <label>Name</label>
+    <div>${this._device.name}</div>
+    <label>IP</label>
+    <div>${this._device.ip}</div>
+    <label>Software Name</label>
+    <div>${this._device.softwareName}</div>
+    <label>Software Version</label>
+    <div>${this._device.softwareVerison}</div>
+</div>
 `;
     }
 }
-customElements.define('trackstar-stagelinq-device', StagelinQDevice);
+customElements.define('trackstar-stagelinq-device', StagelinQDevice, { extends: 'fieldset' });
 
 export { Devices };

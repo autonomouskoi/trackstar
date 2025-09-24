@@ -3,6 +3,7 @@ package stagelinq
 import (
 	"context"
 	"slices"
+	"strings"
 
 	"github.com/autonomouskoi/akcore/bus"
 )
@@ -37,19 +38,11 @@ func (sl *StagelinQ) handleRequestGetDevices(msg *bus.BusMessage) *bus.BusMessag
 		Type:  msg.GetType() + 1,
 	}
 	devices := []*Device{}
-	sl.discovered.processDevices(func(m []*device) {
-		for _, device := range m {
-			devices = append(devices, device.pb)
-		}
-		slices.SortFunc(devices, func(a, b *Device) int {
-			switch {
-			case a.Ip == b.Ip:
-				return 0
-			case a.Ip == b.Ip:
-				return -1
-			}
-			return 1
-		})
+	sl.deviceStates.processDevices(func(m *Device) {
+		devices = append(devices, m)
+	})
+	slices.SortFunc(devices, func(a, b *Device) int {
+		return strings.Compare(a.GetToken(), b.GetToken())
 	})
 	sl.MarshalMessage(reply, &GetDevicesResponse{Devices: devices})
 	return reply

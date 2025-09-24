@@ -3,8 +3,8 @@ module github.com/autonomouskoi/trackstar
 go 1.24.0
 
 require (
-	github.com/autonomouskoi/akcore v0.1.8
-	github.com/autonomouskoi/datastruct v0.0.14
+	github.com/autonomouskoi/akcore v0.1.9
+	github.com/autonomouskoi/datastruct v0.0.15
 	github.com/autonomouskoi/mageutil v0.0.21
 	github.com/icedream/go-stagelinq v1.0.1-0.20250917191334-9c24e7a0b27e
 	github.com/inconshreveable/log15 v2.16.0+incompatible
@@ -31,7 +31,7 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
-	github.com/google/flatbuffers v25.2.10+incompatible // indirect
+	github.com/google/flatbuffers v25.9.23+incompatible // indirect
 	github.com/hypebeast/go-osc v0.0.0-20220308234300-cec5a8a1e5f5 // indirect
 	github.com/ianlancetaylor/demangle v0.0.0-20250628045327-2d64ad6b7ec5 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect

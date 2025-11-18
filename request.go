@@ -86,7 +86,6 @@ func (ts *Trackstar) mungeTrackUpdate(tu *pb.TrackUpdate) {
 	}
 	tu.Track.Artist = strings.TrimSpace(tu.Track.Artist)
 	tu.Track.Title = strings.TrimSpace(tu.Track.Title)
-	tu.Index = int32(len(ts.session.GetTracks()) + 1)
 }
 
 func (ts *Trackstar) handleRequestSubmitTrack(msg *bus.BusMessage) *bus.BusMessage {
@@ -104,12 +103,13 @@ func (ts *Trackstar) handleRequestSubmitTrack(msg *bus.BusMessage) *bus.BusMessa
 		time.Sleep(time.Second * time.Duration(ts.cfg.TrackDelaySeconds))
 		ts.lock.Lock()
 		ts.session.Tracks = append(ts.session.Tracks, str.TrackUpdate)
-		ts.lock.Unlock()
+		str.TrackUpdate.Index = int32(len(ts.session.Tracks))
 		if ts.cfg.SaveSessions {
 			if err := ts.saveSession(ts.session); err != nil {
 				ts.Log.Error("saving session", "error", err.Error())
 			}
 		}
+		ts.lock.Unlock()
 
 		tuMsg := &bus.BusMessage{
 			Topic: pb.BusTopic_TRACKSTAR_EVENT.String(),

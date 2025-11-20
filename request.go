@@ -104,12 +104,12 @@ func (ts *Trackstar) handleRequestSubmitTrack(msg *bus.BusMessage) *bus.BusMessa
 		ts.lock.Lock()
 		ts.session.Tracks = append(ts.session.Tracks, str.TrackUpdate)
 		str.TrackUpdate.Index = int32(len(ts.session.Tracks))
+		ts.lock.Unlock()
 		if ts.cfg.SaveSessions {
 			if err := ts.saveSession(ts.session); err != nil {
 				ts.Log.Error("saving session", "error", err.Error())
 			}
 		}
-		ts.lock.Unlock()
 
 		tuMsg := &bus.BusMessage{
 			Topic: pb.BusTopic_TRACKSTAR_EVENT.String(),

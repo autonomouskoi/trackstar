@@ -13,3 +13,11 @@ func getSessionsPath() (string, error) {
 	}
 	return filepath.Join(home, "Music", "_Serato_", "History", "Sessions"), nil
 }
+
+func getDBPath() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("getting user home dir: %w", err)
+	}
+	return filepath.Join(home, "Library", "Application Support", "Serato", "Library", "master.sqlite"), nil
+}

@@ -3,6 +3,7 @@ package serato
 import (
 	"context"
 	_ "embed"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/autonomouskoi/akcore"
 	"github.com/autonomouskoi/akcore/bus"
 	"github.com/autonomouskoi/akcore/modules"
 	"github.com/autonomouskoi/akcore/modules/modutil"
@@ -45,45 +47,54 @@ func (s *Serato) Start(ctx context.Context, deps *modutil.ModuleDeps) error {
 	s.Log = deps.Log
 	s.bus = deps.Bus
 
-	sessionDirPath, err := getSessionsPath()
-	if err != nil {
-		return fmt.Errorf("getting session path: %w", err)
+	s4, err := New(s.Log)
+	if err == nil {
+		return s4.Go(ctx, s.sendTrackUpdate)
 	}
-	s.Log.Info("using session path", "path", sessionDirPath)
+	if errors.Is(err, akcore.ErrNotFound) {
+		// we must not be v4
+		sessionDirPath, err := getSessionsPath()
+		if err != nil {
+			return fmt.Errorf("getting session path: %w", err)
+		}
+		s.Log.Info("using session path", "path", sessionDirPath)
 
-	sf := newSessionFile(sessionDirPath, s.Log)
-	sf.handleTrack = s.handleTrack
-	track, err := sf.discoverFile(ctx)
-	if err != nil {
-		return fmt.Errorf("discovering session file: %w", err)
+		sf := newSessionFile(sessionDirPath, s.Log)
+		sf.handleTrack = s.handleTrack
+		track, err := sf.discoverFile(ctx)
+		if err != nil {
+			return fmt.Errorf("discovering session file: %w", err)
+		}
+		s.handleTrack(track)
+
+		s.Log.Info("starting watch loop")
+		return sf.watch(ctx)
 	}
-	s.handleTrack(track)
 
-	s.Log.Info("starting watch loop")
-	return sf.watch(ctx)
+	return err
 }
 
 func (s *Serato) handleTrack(t Track) {
+	s.sendTrackUpdate(&trackstar.TrackUpdate{
+		DeckId: "Serato",
+		When:   time.Now().Unix(),
+		Track: &trackstar.Track{
+			Artist: t.Artist,
+			Title:  t.Title,
+		},
+	})
+}
+
+func (s *Serato) sendTrackUpdate(tu *trackstar.TrackUpdate) {
 	msg := &bus.BusMessage{
 		Topic: trackstar.BusTopic_TRACKSTAR_REQUEST.String(),
 		Type:  int32(trackstar.MessageTypeRequest_SUBMIT_TRACK_REQ),
 	}
-	str := &trackstar.SubmitTrackRequest{
-		TrackUpdate: &trackstar.TrackUpdate{
-			DeckId: "Serato",
-			When:   time.Now().Unix(),
-			Track: &trackstar.Track{
-				Artist: t.Artist,
-				Title:  t.Title,
-			},
-		},
-	}
-	s.Log.Info("sending track",
-		"artist", str.TrackUpdate.Track.Artist,
-		"title", str.TrackUpdate.Track.Title,
-	)
+	str := &trackstar.SubmitTrackRequest{TrackUpdate: tu}
+	s.Log.Info("sending track update", "update", tu)
 	s.MarshalMessage(msg, str)
 	s.bus.Send(msg)
+
 }
 
 type sessionFile struct {

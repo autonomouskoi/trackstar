@@ -275,6 +275,13 @@ func (sl *StagelinQ) discover(ctx context.Context) {
 		sl.Log.Debug("discovered non-present device", "state", deviceState, "address", device.IP)
 		return
 	}
+	if device.Name == "AutonomousKoi" {
+		sl.deviceStates.update(tsDevice.GetToken(),
+			DeviceStatus_DEVICE_STATUS_READY,
+			"Searching for StagelinQ devices...",
+		)
+		return
+	}
 	if !supportedDeviceNames.Has(device.Name) {
 		sl.deviceStates.update(tsDevice.GetToken(),
 			DeviceStatus_DEVICE_STATUS_UNSUPPORTED,

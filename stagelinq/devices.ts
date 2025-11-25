@@ -21,26 +21,30 @@ class Devices extends ControlPanel {
     refresh() {
         bus.waitForTopic(TOPIC_REQUEST, 5000)
             .then(() => {
-                return bus.sendAnd(new buspb.BusMessage({
-                    topic: TOPIC_REQUEST,
-                    type: slpb.MessageTypeRequest.GET_DEVICES_REQ,
-                    message: new slpb.GetDevicesRequest().toBinary(),
-                }))
-            }).then((reply) => {
-                let resp = slpb.GetDevicesResponse.fromBinary(reply.message);
-                resp.devices.forEach((device) => this._devices[device.token] = device);
+                this._updateDevices();
                 bus.subscribe(TOPIC_EVENT, (msg) => this._handleEvent(msg));
-                this._render();
             });
+    }
+
+    private _updateDevices() {
+        bus.sendAnd(new buspb.BusMessage({
+            topic: TOPIC_REQUEST,
+            type: slpb.MessageTypeRequest.GET_DEVICES_REQ,
+            message: new slpb.GetDevicesRequest().toBinary(),
+        })).then((reply) => {
+            let resp = slpb.GetDevicesResponse.fromBinary(reply.message);
+            this._devices = {};
+            resp.devices.forEach((device) => this._devices[device.token] = device);
+            this._render();
+        });
+
     }
 
     private _handleEvent(msg: buspb.BusMessage) {
         if (msg.type != slpb.MessageTypeEvent.DEVICE_STATE) {
             return;
         }
-        let event = slpb.DeviceStateEvent.fromBinary(msg.message);
-        this._devices[event.device.token] = event.device;
-        this._render();
+        this._updateDevices();
     }
 
     private _render() {

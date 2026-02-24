@@ -19,7 +19,7 @@ import (
 	"github.com/autonomouskoi/akcore/bus"
 	"github.com/autonomouskoi/akcore/modules"
 	"github.com/autonomouskoi/akcore/modules/modutil"
-	"github.com/autonomouskoi/akcore/storage/kv"
+	"github.com/autonomouskoi/akcore/storage"
 	"github.com/autonomouskoi/akcore/web/webutil"
 	"github.com/autonomouskoi/datastruct/mapset"
 	trackstar "github.com/autonomouskoi/trackstar/pb"
@@ -41,9 +41,7 @@ var (
 //go:embed web.zip
 var webZip []byte
 
-var (
-	cfgKVKey = []byte("config")
-)
+var cfgKVKey = []byte("config")
 
 func init() {
 	manifest := &modules.Manifest{
@@ -152,7 +150,7 @@ type StagelinQ struct {
 	deviceStates *deviceStates
 	deckStates   map[string]*deckState
 	cfg          *Config
-	kv           kv.KVPrefix
+	kv           storage.KVPrefix
 }
 
 func (sl *StagelinQ) Start(ctx context.Context, deps *modutil.ModuleDeps) error {
@@ -221,7 +219,7 @@ func (sl *StagelinQ) start(ctx context.Context) error {
 	}()
 
 	sl.listener, err = stagelinq.ListenWithConfiguration(&stagelinq.ListenerConfiguration{
-		//Context:          ctx,
+		// Context:          ctx,
 		DiscoveryTimeout: timeout,
 		SoftwareName:     appName,
 		SoftwareVersion:  appVersion,
@@ -413,7 +411,7 @@ func (sl *StagelinQ) handleState(device *stagelinq.Device, state *stagelinq.Stat
 	if len(nameFields) < 3 {
 		return
 	}
-	//deckID := device.IP.String() + "/" + nameFields[2]
+	// deckID := device.IP.String() + "/" + nameFields[2]
 	deckID := nameFields[2]
 	ds, present := sl.deckStates[deckID]
 	if !present {
@@ -497,7 +495,8 @@ func (sl *StagelinQ) maybeNotify(ds *deckState) {
 			DeckId: ds.deckID,
 			Track:  ds.track,
 			When:   time.Now().Unix(),
-		}})
+		},
+	})
 	if err != nil {
 		sl.Log.Error("marshalling Track proto", "error", err.Error())
 		return

@@ -15,7 +15,7 @@ import (
 	"github.com/autonomouskoi/akcore/bus"
 	"github.com/autonomouskoi/akcore/modules"
 	"github.com/autonomouskoi/akcore/modules/modutil"
-	"github.com/autonomouskoi/akcore/storage"
+	"github.com/autonomouskoi/akcore/storage/kv"
 	"github.com/autonomouskoi/akcore/web/webutil"
 	"github.com/autonomouskoi/trackstar/pb"
 )
@@ -67,7 +67,7 @@ type Trackstar struct {
 	modutil.ModuleBase
 	bus        *bus.Bus
 	cfg        *pb.Config
-	kv         storage.KVPrefix
+	kv         kv.KVPrefix
 	lock       sync.Mutex
 	session    *pb.Session
 	demoCancel func()

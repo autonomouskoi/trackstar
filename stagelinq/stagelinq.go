@@ -19,7 +19,7 @@ import (
 	"github.com/autonomouskoi/akcore/bus"
 	"github.com/autonomouskoi/akcore/modules"
 	"github.com/autonomouskoi/akcore/modules/modutil"
-	"github.com/autonomouskoi/akcore/storage"
+	"github.com/autonomouskoi/akcore/storage/kv"
 	"github.com/autonomouskoi/akcore/web/webutil"
 	"github.com/autonomouskoi/datastruct/mapset"
 	trackstar "github.com/autonomouskoi/trackstar/pb"
@@ -150,7 +150,7 @@ type StagelinQ struct {
 	deviceStates *deviceStates
 	deckStates   map[string]*deckState
 	cfg          *Config
-	kv           storage.KVPrefix
+	kv           kv.KVPrefix
 }
 
 func (sl *StagelinQ) Start(ctx context.Context, deps *modutil.ModuleDeps) error {

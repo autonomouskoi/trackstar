@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
-	_ "github.com/xeodou/go-sqlcipher" // ideally it's sqlite directly, but save a dependency
 
 	"github.com/autonomouskoi/akcore"
 	"github.com/autonomouskoi/akcore/svc/log"

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
-	_ "github.com/xeodou/go-sqlcipher"
 
 	"github.com/autonomouskoi/akcore/bus"
 	"github.com/autonomouskoi/akcore/modules"
